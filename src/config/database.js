@@ -1,4 +1,5 @@
 const { Sequelize } = require("sequelize");
+const log = require("../utils/logger");
 
 const config = {
   host: process.env.DB_HOST || "localhost",
@@ -7,7 +8,7 @@ const config = {
   username: process.env.DB_USER || "taskey",
   password: process.env.DB_PASS || "taskey_secret",
   dialect: "postgres",
-  logging: process.env.NODE_ENV === "production" ? false : console.log,
+  logging: process.env.NODE_ENV === "production" ? false : (sql) => log.debug("SQL", { query: sql }),
   pool: {
     max: 10,
     min: 2,
@@ -40,15 +41,15 @@ const sequelize = new Sequelize(
 async function initDatabase() {
   try {
     await sequelize.authenticate();
-    console.log("[DB] PostgreSQL bağlantısı başarılı");
+    log.info("PostgreSQL bağlantısı başarılı", { host: config.host, port: config.port, db: config.database });
 
     // Model tanımları yüklendikten sonra sync çağrılır
     await sequelize.sync({ alter: process.env.NODE_ENV !== "production" });
-    console.log("[DB] Tablolar senkronize edildi");
+    log.info("Tablolar senkronize edildi");
 
     return true;
   } catch (err) {
-    console.error("[DB] Bağlantı hatası:", err.message);
+    log.error("Veritabanı bağlantı hatası", { host: config.host, port: config.port, err });
     return false;
   }
 }

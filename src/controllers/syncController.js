@@ -3,6 +3,7 @@ const { Op } = require("sequelize");
 const { Workspace, WorkspaceClient, DiffEntry, SyncSnapshot } = require("../models/index");
 const { sendSuccess, sendError } = require("../utils/response");
 const { parseBody } = require("../utils/parseBody");
+const log = require("../utils/logger");
 
 /**
  * Sync Controller — Offline-First Diff Tabanlı Senkronizasyon
@@ -222,6 +223,16 @@ async function push(req, res) {
 
     await t.commit();
 
+    log.info("Push tamamlandı", {
+      clientId,
+      workspace: workspace.id,
+      accepted: pendingDiffs.length,
+      rejected: savedDiffs.filter((d) => d.status === "rejected").length,
+      conflicts: conflicts.length,
+      autoResolved: autoResolved.length,
+      version: workspace.current_version,
+    });
+
     sendSuccess(res, {
       accepted: pendingDiffs.length,
       rejected: savedDiffs.filter((d) => d.status === "rejected").length,
@@ -234,6 +245,7 @@ async function push(req, res) {
     });
   } catch (err) {
     await t.rollback();
+    log.error("Push hatası", { err });
     sendError(res, 500, "Push hatası: " + err.message);
   }
 }
@@ -337,6 +349,7 @@ async function pull(req, res) {
       })),
     });
   } catch (err) {
+    log.error("Pull hatası", { err });
     sendError(res, 500, "Pull hatası: " + err.message);
   }
 }
@@ -408,6 +421,7 @@ async function fullSync(req, res) {
       })),
     });
   } catch (err) {
+    log.error("Full sync hatası", { err });
     sendError(res, 500, "Full sync hatası: " + err.message);
   }
 }
@@ -455,6 +469,7 @@ async function heartbeat(req, res) {
       syncStrategy: workspace ? workspace.sync_strategy : "auto-merge",
     });
   } catch (err) {
+    log.error("Heartbeat hatası", { err });
     sendError(res, 500, "Heartbeat hatası: " + err.message);
   }
 }
@@ -517,6 +532,7 @@ async function status(req, res) {
       })),
     });
   } catch (err) {
+    log.error("Durum sorgulama hatası", { err });
     sendError(res, 500, "Durum sorgulama hatası: " + err.message);
   }
 }
@@ -602,11 +618,10 @@ async function conflicts(req, res) {
       conflicts: conflictsWithContext,
     });
   } catch (err) {
+    log.error("Conflict listesi hatası", { err });
     sendError(res, 500, "Conflict listesi hatası: " + err.message);
   }
 }
-
-// ===== POST /api/sync/resolve =====
 // Conflict olan diff'leri manuel çöz
 async function resolve(req, res) {
   try {
@@ -657,11 +672,10 @@ async function resolve(req, res) {
       throw err;
     }
   } catch (err) {
+    log.error("Çözümleme hatası", { err });
     sendError(res, 500, "Çözümleme hatası: " + err.message);
   }
 }
-
-// ===== POST /api/sync/resolve-batch =====
 // Birden fazla conflict'i toplu çöz
 async function resolveBatch(req, res) {
   const t = await sequelize.transaction();
@@ -727,11 +741,10 @@ async function resolveBatch(req, res) {
     });
   } catch (err) {
     await t.rollback();
+    log.error("Toplu çözümleme hatası", { err });
     sendError(res, 500, "Toplu çözümleme hatası: " + err.message);
   }
 }
-
-// ===== PATCH /api/sync/strategy =====
 // Workspace'in sync stratejisini güncelle (dashboard için)
 async function updateStrategy(req, res) {
   try {
@@ -764,11 +777,10 @@ async function updateStrategy(req, res) {
       message: `Sync stratejisi '${strategy}' olarak güncellendi`,
     });
   } catch (err) {
+    log.error("Strateji güncelleme hatası", { err });
     sendError(res, 500, "Strateji güncelleme hatası: " + err.message);
   }
 }
-
-// ===================================================================
 // ================= INTERNAL HELPER FUNCTIONS ========================
 // ===================================================================
 

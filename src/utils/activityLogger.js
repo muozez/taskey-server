@@ -1,4 +1,5 @@
 const { ActivityLog } = require("../models/index");
+const log = require("./logger");
 
 /**
  * Aktivite kaydet
@@ -11,8 +12,9 @@ const { ActivityLog } = require("../models/index");
 async function logActivity(type, title, description = "", actorName = "", meta = {}) {
   try {
     await ActivityLog.create({ type, title, description, actor_name: actorName, meta });
+    log.debug("Aktivite kaydedildi", { type, title, actor: actorName });
   } catch (err) {
-    console.error("[Activity] Log kaydı başarısız:", err.message);
+    log.error("Aktivite log kaydı başarısız", { type, title, err });
   }
 }
 

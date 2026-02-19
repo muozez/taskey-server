@@ -3,6 +3,7 @@ const { sendSuccess, sendError } = require("../utils/response");
 const { parseBody } = require("../utils/parseBody");
 const { isValidKeyFormat, generateJoinKey } = require("../utils/keyGenerator");
 const { logActivity } = require("../utils/activityLogger");
+const log = require("../utils/logger");
 
 /**
  * Workspace Controller — PostgreSQL (Sequelize ORM) ile çalışır
@@ -51,6 +52,7 @@ async function list(req, res) {
     const formatted = workspaces.map((ws) => formatWorkspace(ws, ws.clients));
     sendSuccess(res, { workspaces: formatted });
   } catch (err) {
+    log.error("Workspace listesi hatası", { err });
     sendError(res, 500, "Workspace listesi alınamadı: " + err.message);
   }
 }
@@ -67,6 +69,7 @@ async function getById(req, res, id) {
     }
     sendSuccess(res, { workspace: formatWorkspace(ws, ws.clients) });
   } catch (err) {
+    log.error("Workspace detay hatası", { id, err });
     sendError(res, 500, "Detay alınamadı: " + err.message);
   }
 }
@@ -101,8 +104,10 @@ async function create(req, res) {
     const actorName = req.user ? req.user.name : "Sistem";
     await logActivity("workspace_created", `"${trimmedName}" çalışma alanı oluşturuldu`, `${actorName} yeni bir çalışma alanı oluşturdu.`, actorName, { workspaceId: ws.id, workspaceName: trimmedName });
 
+    log.info("Workspace oluşturuldu", { id: ws.id, name: trimmedName });
     sendSuccess(res, { workspace: formatWorkspace(ws, []) }, 201);
   } catch (err) {
+    log.error("Workspace oluşturma hatası", { err });
     sendError(res, 400, "Oluşturma hatası: " + err.message);
   }
 }
@@ -121,8 +126,10 @@ async function remove(req, res, id) {
     const actorName = req.user ? req.user.name : "Sistem";
     await logActivity("workspace_deleted", `"${wsName}" çalışma alanı silindi`, `${actorName} çalışma alanını sildi.`, actorName, { workspaceName: wsName });
 
+    log.info("Workspace silindi", { id, name: wsName });
     sendSuccess(res, { message: "Çalışma alanı silindi" });
   } catch (err) {
+    log.error("Workspace silme hatası", { id, err });
     sendError(res, 500, "Silme hatası: " + err.message);
   }
 }
@@ -144,6 +151,7 @@ async function regenerateKey(req, res, id) {
     const clients = await WorkspaceClient.findAll({ where: { workspace_id: id } });
     sendSuccess(res, { workspace: formatWorkspace(ws, clients) });
   } catch (err) {
+    log.error("Key yenileme hatası", { id, err });
     sendError(res, 500, "Key yenileme hatası: " + err.message);
   }
 }
@@ -206,6 +214,7 @@ async function join(req, res) {
       },
     });
   } catch (err) {
+    log.error("Workspace katılım hatası", { err });
     sendError(res, 400, "Katılım hatası: " + err.message);
   }
 }
@@ -232,6 +241,7 @@ async function validateKey(req, res) {
       workspace: { id: ws.id, name: ws.name, status: ws.status },
     });
   } catch (err) {
+    log.error("Key doğrulama hatası", { err });
     sendError(res, 400, "Doğrulama hatası: " + err.message);
   }
 }
@@ -273,6 +283,7 @@ async function stats(req, res) {
       },
     });
   } catch (err) {
+    log.error("İstatistik hatası", { err });
     sendError(res, 500, "İstatistik alınamadı: " + err.message);
   }
 }
@@ -287,6 +298,7 @@ async function listUsers(req, res) {
     });
     sendSuccess(res, { users: users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at || u.createdAt })) });
   } catch (err) {
+    log.error("Kullanıcı listesi hatası", { err });
     sendError(res, 500, "Kullanıcı listesi alınamadı: " + err.message);
   }
 }
@@ -317,8 +329,10 @@ async function createUser(req, res) {
     const actorName = req.user ? req.user.name : "Sistem";
     await logActivity("user_created", `"${user.name}" kullanıcısı oluşturuldu`, `${actorName} yeni bir kullanıcı ekledi.`, actorName, { userId: user.id, userName: user.name });
 
+    log.info("Kullanıcı oluşturuldu", { userId: user.id, name: user.name });
     sendSuccess(res, { user: { id: user.id, name: user.name, email: user.email, role: user.role } }, 201);
   } catch (err) {
+    log.error("Kullanıcı oluşturma hatası", { err });
     const message = err.name === "SequelizeUniqueConstraintError"
       ? "Bu e-posta adresi zaten kullanılıyor"
       : "Kullanıcı oluşturma hatası: " + err.message;
@@ -348,8 +362,10 @@ async function deleteUser(req, res, id) {
     const actorName = req.user ? req.user.name : "Sistem";
     await logActivity("user_deleted", `"${userName}" kullanıcısı silindi`, `${actorName} kullanıcıyı sildi.`, actorName, { userName });
 
+    log.info("Kullanıcı silindi", { userId: id, name: userName });
     sendSuccess(res, { message: "Kullanıcı silindi" });
   } catch (err) {
+    log.error("Kullanıcı silme hatası", { id, err });
     sendError(res, 500, "Silme hatası: " + err.message);
   }
 }
@@ -383,6 +399,7 @@ async function listActivities(req, res) {
       offset,
     });
   } catch (err) {
+    log.error("Aktivite listesi hatası", { err });
     sendError(res, 500, "Aktivite listesi alınamadı: " + err.message);
   }
 }

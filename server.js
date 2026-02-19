@@ -3,6 +3,11 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+// ===== Logging =====
+const log = require("./src/utils/logger");
+const errorHandler = require("./src/middleware/errorHandler");
+const { validate, schemas } = require("./src/middleware/validate");
+
 // ===== Database & ORM =====
 const { initDatabase } = require("./src/config/database");
 const { seedDatabase } = require("./src/config/seed");
@@ -21,6 +26,7 @@ const sessions = new Map();
 function createSession(user) {
   const token = crypto.randomBytes(32).toString("hex");
   sessions.set(token, { email: user.email, name: user.name, role: user.role, createdAt: Date.now() });
+  log.debug("Oturum oluşturuldu", { email: user.email });
   return token;
 }
 
@@ -81,15 +87,30 @@ const PUBLIC_ROOT = path.join(__dirname, "public");
 authMiddleware.init(sessions);
 
 const server = http.createServer(async (req, res) => {
+  const startTime = Date.now();
+
+  // İstek tamamlandığında log yaz
+  res.on("finish", () => {
+    const duration = Date.now() - startTime;
+    // Statik dosya isteklerini debug seviyesinde logla
+    if (req.url && !req.url.startsWith("/api")) {
+      log.debug("Static", { method: req.method, url: req.url, status: res.statusCode, duration: `${duration}ms` });
+    } else {
+      log.req(req, res, duration);
+    }
+  });
+
   // ===== MVC Routes (src/ altındaki route'lar) =====
   const routeHandler = matchRoute(req);
   if (routeHandler) {
     try {
       await routeHandler(req, res);
     } catch (err) {
-      console.error("[Server] Route hatası:", err);
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ success: false, message: "Sunucu hatası" }));
+      log.error("Route handler hatası", { method: req.method, url: req.url, err });
+      if (!res.headersSent) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: false, message: "Sunucu hatası" }));
+      }
     }
     return;
   }
@@ -101,7 +122,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ needsSetup: userCount === 0 }));
     } catch (err) {
-      console.error("[Setup] Status hatası:", err);
+      log.error("Setup status kontrol hatası", { err });
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Sunucu hatası" }));
     }
@@ -116,24 +137,16 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ message: "Kurulum zaten tamamlanmış" }));
         return;
       }
-      const { name, email, password } = await parseBody(req);
-      if (!name || !email || !password) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ message: "Ad, e-posta ve şifre zorunludur" }));
-        return;
-      }
-      if (password.length < 6) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ message: "Şifre en az 6 karakter olmalıdır" }));
-        return;
-      }
+      const body = await validate(req, res, schemas.setup);
+      if (!body) return;
+      const { name, email, password } = body;
       const user = await User.create({
         name,
         email,
         password,
         role: "Yönetici",
       });
-      console.log(`[Setup] Root hesap oluşturuldu: ${user.email}`);
+      log.info("Root hesap oluşturuldu", { email: user.email });
       // Log activity
       try {
         const { logActivity } = require("./src/utils/activityLogger");
@@ -142,7 +155,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ success: true, message: "Hesap başarıyla oluşturuldu" }));
     } catch (err) {
-      console.error("[Setup] Hata:", err);
+      log.error("Kurulum hatası", { err });
       const message = err.name === "SequelizeUniqueConstraintError"
         ? "Bu e-posta adresi zaten kullanılıyor"
         : "Kurulum sırasında bir hata oluştu";
@@ -166,7 +179,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ token, user: { name: user.name, email: user.email, role: user.role } }));
     } catch (err) {
-      console.error("[Auth] Login hatası:", err);
+      log.warn("Login hatası", { err });
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Geçersiz istek" }));
     }
@@ -239,12 +252,14 @@ const server = http.createServer(async (req, res) => {
     await initDatabase();
     await seedDatabase();
 
+    // Process-level error handler ve graceful shutdown
+    errorHandler.init(server);
+
     server.listen(PORT, () => {
-      console.log(`Taskey running at http://localhost:${PORT}`);
-      console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
+      log.banner(PORT);
     });
   } catch (err) {
-    console.error("[Boot] Sunucu başlatılamadı:", err);
+    log.error("Sunucu başlatılamadı", { err });
     process.exit(1);
   }
 })();
