@@ -73,6 +73,26 @@ const Auth = (() => {
     return false;
   }
 
+  // Kurulum gerekiyor mu kontrol et
+  async function checkSetup() {
+    try {
+      const res = await fetch("/api/setup/status");
+      const data = await res.json();
+      return data.needsSetup === true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Onboarding tamamlandı mı?
+  function isOnboardingDone() {
+    return localStorage.getItem("taskey_onboarding_done") === "true";
+  }
+
+  function markOnboardingDone() {
+    localStorage.setItem("taskey_onboarding_done", "true");
+  }
+
   return {
     getToken,
     getUser,
@@ -82,5 +102,8 @@ const Auth = (() => {
     logout,
     requireAuth,
     redirectIfAuthenticated,
+    checkSetup,
+    isOnboardingDone,
+    markOnboardingDone,
   };
 })();

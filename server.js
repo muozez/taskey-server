@@ -94,6 +94,59 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ===== Setup API Routes =====
+  if (req.url === "/api/setup/status" && req.method === "GET") {
+    try {
+      const userCount = await User.count();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ needsSetup: userCount === 0 }));
+    } catch (err) {
+      console.error("[Setup] Status hatası:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Sunucu hatası" }));
+    }
+    return;
+  }
+
+  if (req.url === "/api/setup" && req.method === "POST") {
+    try {
+      const userCount = await User.count();
+      if (userCount > 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Kurulum zaten tamamlanmış" }));
+        return;
+      }
+      const { name, email, password } = await parseBody(req);
+      if (!name || !email || !password) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Ad, e-posta ve şifre zorunludur" }));
+        return;
+      }
+      if (password.length < 6) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Şifre en az 6 karakter olmalıdır" }));
+        return;
+      }
+      const user = await User.create({
+        name,
+        email,
+        password,
+        role: "Yönetici",
+      });
+      console.log(`[Setup] Root hesap oluşturuldu: ${user.email}`);
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: true, message: "Hesap başarıyla oluşturuldu" }));
+    } catch (err) {
+      console.error("[Setup] Hata:", err);
+      const message = err.name === "SequelizeUniqueConstraintError"
+        ? "Bu e-posta adresi zaten kullanılıyor"
+        : "Kurulum sırasında bir hata oluştu";
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message }));
+    }
+    return;
+  }
+
   // ===== Auth API Routes (DB-backed) =====
   if (req.url === "/api/login" && req.method === "POST") {
     try {

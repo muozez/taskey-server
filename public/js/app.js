@@ -413,6 +413,13 @@ function bindWorkspaceEvents(container) {
 
 // ===== Init =====
 document.addEventListener("DOMContentLoaded", async () => {
+  // ---- Setup check ----
+  const needsSetup = await Auth.checkSetup();
+  if (needsSetup) {
+    window.location.replace("/setup.html");
+    return;
+  }
+
   // ---- Auth check via auth.js ----
   const isAuthed = await Auth.requireAuth();
   if (!isAuthed) return;
@@ -624,6 +631,74 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.key === "Escape") {
       document.querySelectorAll(".modal-overlay:not(.hidden)").forEach((m) => m.classList.add("hidden"));
       hideContextMenu();
+      // Close onboarding too
+      const onboarding = document.getElementById("onboarding-overlay");
+      if (onboarding && !onboarding.classList.contains("hidden")) {
+        onboarding.classList.add("hidden");
+        Auth.markOnboardingDone();
+      }
     }
   });
+
+  // ---- Onboarding ----
+  if (!Auth.isOnboardingDone()) {
+    initOnboarding();
+  }
 });
+
+// ===== Onboarding Controller =====
+function initOnboarding() {
+  const overlay = document.getElementById("onboarding-overlay");
+  const prevBtn = document.getElementById("onboarding-prev");
+  const nextBtn = document.getElementById("onboarding-next");
+  const skipBtn = document.getElementById("onboarding-skip");
+  if (!overlay || !prevBtn || !nextBtn || !skipBtn) return;
+
+  const slides = overlay.querySelectorAll(".onboarding-slide");
+  const dots = overlay.querySelectorAll(".onboarding-dot");
+  const totalSlides = slides.length;
+  let currentSlide = 0;
+
+  function showSlide(index) {
+    slides.forEach((s, i) => {
+      s.classList.toggle("active", i === index);
+    });
+    dots.forEach((d, i) => {
+      d.classList.remove("active", "done");
+      if (i < index) d.classList.add("done");
+      if (i === index) d.classList.add("active");
+    });
+    prevBtn.classList.toggle("hidden", index === 0);
+    if (index === totalSlides - 1) {
+      nextBtn.textContent = "Başlayalım!";
+    } else {
+      nextBtn.textContent = "Devam";
+    }
+    currentSlide = index;
+  }
+
+  function closeOnboarding() {
+    overlay.classList.add("hidden");
+    Auth.markOnboardingDone();
+  }
+
+  nextBtn.addEventListener("click", () => {
+    if (currentSlide < totalSlides - 1) {
+      showSlide(currentSlide + 1);
+    } else {
+      closeOnboarding();
+    }
+  });
+
+  prevBtn.addEventListener("click", () => {
+    if (currentSlide > 0) {
+      showSlide(currentSlide - 1);
+    }
+  });
+
+  skipBtn.addEventListener("click", closeOnboarding);
+
+  // Show onboarding
+  overlay.classList.remove("hidden");
+  showSlide(0);
+}
