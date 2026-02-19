@@ -77,13 +77,22 @@
 
       <!-- Footer -->
       <div class="login-footer">
-        <p>Demo: <strong>admin@taskey.com</strong> / <strong>123456</strong></p>
+        <p>Taskey Kontrol Paneli</p>
       </div>
     </div>
   </div>
 
   <script src="/js/auth.js"></script>
   <script>
+    // If setup needed, redirect to setup page
+    (async () => {
+      const needsSetup = await Auth.checkSetup();
+      if (needsSetup) {
+        window.location.replace("/setup.html");
+        return;
+      }
+    })();
+
     // If already logged in (and token is valid), redirect to dashboard
     Auth.redirectIfAuthenticated();
 

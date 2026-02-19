@@ -1,7 +1,54 @@
 services:
+  # ── PostgreSQL ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskey-postgres
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taskey} -d ${POSTGRES_DB:-taskey}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+
+  # ── Node.js App (scalable) ────────────────────────────────
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Nginx reverse proxy / load balancer ───────────────────
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
+    container_name: taskey-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./${NGINX_CONF:-nginx.conf}:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro  # TLS sertifikaları — sadece NGINX_CONF=nginx-ssl.conf iken gerekli
+    depends_on:
+      - app
+    networks:
+      - external
+      - internal
+
+volumes:
+  pgdata:
+
+networks:
+  external:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true

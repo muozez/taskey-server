@@ -24,6 +24,8 @@ const Auth = (() => {
     localStorage.removeItem("taskey_user");
   }
 
+  const OFFLINE_TOLERANCE_MS = 30 * 60 * 1000; // 30 dakika
+
   async function verify() {
     const token = getToken();
     if (!token) return false;
@@ -31,13 +33,23 @@ const Auth = (() => {
       const res = await fetch("/api/me", {
         headers: { "Authorization": `Bearer ${token}` },
       });
-      if (res.ok) return true;
+      if (res.ok) {
+        // Son başarılı doğrulama zamanını kaydet
+        sessionStorage.setItem("taskey_last_verified", Date.now().toString());
+        return true;
+      }
       // Token geçersiz — temizle
       clear();
       return false;
     } catch {
-      // Sunucuya ulaşılamadı — token'ı geçerli say (offline tolerans)
-      return true;
+      // Sunucuya ulaşılamadı — sınırlı offline tolerans
+      const lastVerified = parseInt(sessionStorage.getItem("taskey_last_verified") || "0", 10);
+      if (lastVerified && (Date.now() - lastVerified) < OFFLINE_TOLERANCE_MS) {
+        return true;
+      }
+      // Offline tolerans süresi dolmuş
+      clear();
+      return false;
     }
   }
 
@@ -73,6 +85,26 @@ const Auth = (() => {
     return false;
   }
 
+  // Kurulum gerekiyor mu kontrol et
+  async function checkSetup() {
+    try {
+      const res = await fetch("/api/setup/status");
+      const data = await res.json();
+      return data.needsSetup === true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Onboarding tamamlandı mı?
+  function isOnboardingDone() {
+    return localStorage.getItem("taskey_onboarding_done") === "true";
+  }
+
+  function markOnboardingDone() {
+    localStorage.setItem("taskey_onboarding_done", "true");
+  }
+
   return {
     getToken,
     getUser,
@@ -82,5 +114,8 @@ const Auth = (() => {
     logout,
     requireAuth,
     redirectIfAuthenticated,
+    checkSetup,
+    isOnboardingDone,
+    markOnboardingDone,
   };
 })();
