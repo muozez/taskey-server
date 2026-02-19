@@ -20,13 +20,28 @@ const MIME_TYPES = {
   ".ttf": "font/ttf",
 };
 
-const server = http.createServer((req, res) => {
-  let filePath;
+const PUBLIC_ROOT = path.join(__dirname, "public");
 
-  if (req.url === "/" || req.url === "/index.html") {
-    filePath = path.join(__dirname, "public", "index.html");
-  } else {
-    filePath = path.join(__dirname, "public", req.url);
+const server = http.createServer((req, res) => {
+  // Parse the URL to strip query strings and decode
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(req.url, `http://localhost:${PORT}`);
+  } catch {
+    res.writeHead(400, { "Content-Type": "text/html" });
+    res.end("<h1>400 - Bad Request</h1>");
+    return;
+  }
+
+  const pathname = decodeURIComponent(parsedUrl.pathname);
+  const safePath = pathname === "/" || pathname === "/index.html" ? "index.html" : pathname.replace(/^\//, "");
+
+  // Resolve and check for path traversal
+  const filePath = path.resolve(PUBLIC_ROOT, safePath);
+  if (!filePath.startsWith(PUBLIC_ROOT + path.sep) && filePath !== PUBLIC_ROOT) {
+    res.writeHead(403, { "Content-Type": "text/html" });
+    res.end("<h1>403 - Forbidden</h1>");
+    return;
   }
 
   const ext = path.extname(filePath).toLowerCase();

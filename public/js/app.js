@@ -36,6 +36,12 @@ const SERVERS = [
 ];
 
 // ===== Helpers =====
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 function getFormattedDate() {
   const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
   const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
@@ -47,7 +53,12 @@ function showToast(message, type = "success") {
   const container = document.getElementById("toast-container");
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<span class="icon">${ICONS.check}</span> ${message}`;
+  const iconSpan = document.createElement("span");
+  iconSpan.className = "icon";
+  iconSpan.innerHTML = ICONS.check;
+  const textNode = document.createTextNode(" " + message);
+  toast.appendChild(iconSpan);
+  toast.appendChild(textNode);
   container.appendChild(toast);
   setTimeout(() => {
     toast.classList.add("removing");
@@ -108,26 +119,26 @@ function renderWorkspaceCard(ws, showAdd) {
   const extraCount = Math.max(0, ws.members - ws.avatarColors.length);
   const usageClass = ws.usage >= 80 ? "danger" : "primary";
   return `
-    <div class="workspace-card" data-workspace-id="${ws.id}">
+    <div class="workspace-card" data-workspace-id="${escapeHtml(ws.id)}">
       <div class="workspace-card-header">
         <div class="workspace-info">
-          <div class="workspace-avatar ${ws.color}">${ws.abbr}</div>
+          <div class="workspace-avatar ${escapeHtml(ws.color)}">${escapeHtml(ws.abbr)}</div>
           <div>
-            <h4 class="workspace-name">${ws.name}</h4>
+            <h4 class="workspace-name">${escapeHtml(ws.name)}</h4>
             <div class="workspace-status">
-              <span class="status-dot ${ws.status}"></span>
-              <span class="status-text">${ws.statusText}</span>
+              <span class="status-dot ${escapeHtml(ws.status)}"></span>
+              <span class="status-text">${escapeHtml(ws.statusText)}</span>
             </div>
           </div>
         </div>
-        <button class="more-btn" data-ws-menu="${ws.id}">
+        <button class="more-btn" data-ws-menu="${escapeHtml(ws.id)}" aria-label="Daha fazla seçenek">
           <span class="icon" data-icon="more_vert"></span>
         </button>
       </div>
       <div class="progress-section">
         <div class="progress-label">
-          <span class="label">${ws.metric}</span>
-          <span class="value">${ws.usage}%</span>
+          <span class="label">${escapeHtml(ws.metric)}</span>
+          <span class="value">${escapeHtml(String(ws.usage))}%</span>
         </div>
         <div class="progress-bar">
           <div class="progress-fill ${usageClass}" style="width: ${ws.usage}%"></div>
@@ -135,10 +146,10 @@ function renderWorkspaceCard(ws, showAdd) {
       </div>
       <div class="workspace-footer">
         <div class="team-avatars">
-          ${ws.avatarColors.map((c, i) => `<div class="avatar" style="background-color: ${c};${i === 0 ? ' margin-left: 0;' : ''}"></div>`).join("")}
+          ${ws.avatarColors.map((c, i) => `<div class="avatar" style="background-color: ${escapeHtml(c)};${i === 0 ? ' margin-left: 0;' : ''}"></div>`).join("")}
           ${extraCount > 0 ? `<div class="avatar-count">+${extraCount}</div>` : ""}
         </div>
-        <button class="btn-invite" data-invite="${ws.name}">Davet Et</button>
+        <button class="btn-invite" data-invite="${escapeHtml(ws.name)}">Davet Et</button>
       </div>
     </div>
   `;
@@ -174,17 +185,17 @@ function renderServers() {
   grid.innerHTML = SERVERS.map((s) => `
     <div class="server-card">
       <div class="server-card-header">
-        <h4>${s.name}</h4>
+        <h4>${escapeHtml(s.name)}</h4>
         <div class="workspace-status">
           <span class="status-dot ${s.status === 'Çevrimiçi' ? 'online' : 'offline'}"></span>
-          <span class="status-text">${s.status}</span>
+          <span class="status-text">${escapeHtml(s.status)}</span>
         </div>
       </div>
       <div class="server-meta">
-        <div class="server-meta-row"><span class="label">IP Adresi</span><span class="value">${s.ip}</span></div>
-        <div class="server-meta-row"><span class="label">CPU</span><span class="value">${s.cpu}</span></div>
-        <div class="server-meta-row"><span class="label">RAM</span><span class="value">${s.ram}</span></div>
-        <div class="server-meta-row"><span class="label">Çalışma Süresi</span><span class="value">${s.uptime}</span></div>
+        <div class="server-meta-row"><span class="label">IP Adresi</span><span class="value">${escapeHtml(s.ip)}</span></div>
+        <div class="server-meta-row"><span class="label">CPU</span><span class="value">${escapeHtml(s.cpu)}</span></div>
+        <div class="server-meta-row"><span class="label">RAM</span><span class="value">${escapeHtml(s.ram)}</span></div>
+        <div class="server-meta-row"><span class="label">Çalışma Süresi</span><span class="value">${escapeHtml(s.uptime)}</span></div>
       </div>
     </div>
   `).join("");
@@ -222,25 +233,33 @@ function showWorkspaceDetail(wsId) {
     <div class="detail-grid">
       <div class="detail-item">
         <div class="detail-label">Durum</div>
-        <div class="detail-value">${ws.statusText}</div>
+        <div class="detail-value">${escapeHtml(ws.statusText)}</div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Üye Sayısı</div>
-        <div class="detail-value">${ws.members} kişi</div>
+        <div class="detail-value">${escapeHtml(String(ws.members))} kişi</div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">${ws.metric}</div>
-        <div class="detail-value">${ws.usage}%</div>
+        <div class="detail-label">${escapeHtml(ws.metric)}</div>
+        <div class="detail-value">${escapeHtml(String(ws.usage))}%</div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Kısa Ad</div>
-        <div class="detail-value">${ws.abbr}</div>
+        <div class="detail-value">${escapeHtml(ws.abbr)}</div>
       </div>
+      ${ws.server ? `<div class="detail-item">
+        <div class="detail-label">Sunucu</div>
+        <div class="detail-value">${escapeHtml(ws.server)}</div>
+      </div>` : ""}
+      ${ws.description ? `<div class="detail-item">
+        <div class="detail-label">Açıklama</div>
+        <div class="detail-value">${escapeHtml(ws.description)}</div>
+      </div>` : ""}
     </div>
     <div style="margin-top: 20px;">
       <div class="progress-label">
-        <span class="label">${ws.metric}</span>
-        <span class="value">${ws.usage}%</span>
+        <span class="label">${escapeHtml(ws.metric)}</span>
+        <span class="value">${escapeHtml(String(ws.usage))}%</span>
       </div>
       <div class="progress-bar">
         <div class="progress-fill ${ws.usage >= 80 ? 'danger' : 'primary'}" style="width: ${ws.usage}%"></div>
@@ -325,8 +344,39 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
       navigateTo(item.getAttribute("data-page"));
+      // Close mobile sidebar
+      closeMobileSidebar();
     });
   });
+
+  // ---- Mobile hamburger menu ----
+  const hamburgerBtn = document.getElementById("hamburger-btn");
+  const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebar-overlay");
+
+  function openMobileSidebar() {
+    sidebar.classList.add("open");
+    hamburgerBtn.classList.add("active");
+    sidebarOverlay.classList.remove("hidden");
+  }
+  function closeMobileSidebar() {
+    sidebar.classList.remove("open");
+    hamburgerBtn.classList.remove("active");
+    sidebarOverlay.classList.add("hidden");
+  }
+
+  if (hamburgerBtn) {
+    hamburgerBtn.addEventListener("click", () => {
+      if (sidebar.classList.contains("open")) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
+    });
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", closeMobileSidebar);
+  }
 
   // ---- "Tümünü Gör" button ----
   document.querySelectorAll(".view-all-btn[data-page]").forEach((btn) => {
@@ -363,6 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const colors = ["indigo", "amber", "rose", "green", "blue"];
     const abbr = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+    const description = document.getElementById("ws-desc").value.trim();
     WORKSPACES.push({
       id: name.toLowerCase().replace(/\s+/g, "-"),
       name, abbr,
@@ -370,6 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
       status: "pending", statusText: "Beklemede",
       metric: "CPU Kullanımı", usage: 0, members: 1,
       avatarColors: ["#a5b4fc"],
+      server, description: description || "",
     });
 
     closeModal("modal-create-workspace");
