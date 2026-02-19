@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetManager — Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <!-- Inter font from Google Fonts (only external dependency for typography) -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+          <span class="icon" data-icon="terminal"></span>
+        </div>
+        <div>
+          <h1>NetManager</h1>
+          <p>Local Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active">
+          <span class="icon" data-icon="dashboard"></span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="icon" data-icon="layers"></span>
+          <span>Workspaces</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="icon" data-icon="dns"></span>
+          <span>Servers</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="icon" data-icon="settings"></span>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar">
+            <div class="user-avatar-placeholder">M</div>
+          </div>
+          <div class="user-info">
+            <p class="name">Muhammet</p>
+            <p class="role">Administrator</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== Main Content ===== -->
+    <main class="main-content">
+
+      <!-- Header -->
+      <header class="page-header">
+        <div>
+          <h2>İyi Günler, Muhammet!</h2>
+          <p class="subtitle" id="current-date">Pazartesi, 24 Temmuz 2023</p>
+        </div>
+        <div class="header-actions">
+          <div class="search-box">
+            <span class="icon" data-icon="search"></span>
+            <input id="search-input" type="text" placeholder="Search resources..." />
+          </div>
+          <button class="btn-primary" id="create-workspace-btn">
+            <span class="icon" data-icon="add"></span>
+            Create New Workspace
+          </button>
+        </div>
+      </header>
+
+      <!-- Stats Row -->
+      <section class="stats-grid">
+        <!-- Stat 1 -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <div class="stat-icon primary">
+              <span class="icon" data-icon="folder"></span>
+            </div>
+            <span class="stat-badge">+2 this wk</span>
+          </div>
+          <p class="stat-label">Active Workspaces</p>
+          <p class="stat-value">12</p>
+        </div>
+        <!-- Stat 2 -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <div class="stat-icon default">
+              <span class="icon" data-icon="storage"></span>
+            </div>
+          </div>
+          <p class="stat-label">Total Servers</p>
+          <p class="stat-value">4</p>
+        </div>
+        <!-- Stat 3 -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <div class="stat-icon default">
+              <span class="icon" data-icon="group"></span>
+            </div>
+          </div>
+          <p class="stat-label">Connected Members</p>
+          <p class="stat-value">28</p>
+        </div>
+        <!-- Stat 4 -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <div class="stat-icon default">
+              <span class="icon" data-icon="mail"></span>
+            </div>
+          </div>
+          <p class="stat-label">Pending Invites</p>
+          <p class="stat-value">5</p>
+        </div>
+      </section>
+
+      <!-- Content Grid -->
+      <div class="content-grid">
+
+        <!-- Workspaces Section -->
+        <div>
+          <div class="section-header">
+            <h3>Active Workspaces</h3>
+            <button class="view-all-btn">View All</button>
+          </div>
+
+          <div class="workspaces-grid">
+
+            <!-- Workspace: Backend Production -->
+            <div class="workspace-card">
+              <div class="workspace-card-header">
+                <div class="workspace-info">
+                  <div class="workspace-avatar indigo">BP</div>
+                  <div>
+                    <h4 class="workspace-name">Backend Production</h4>
+                    <div class="workspace-status">
+                      <span class="status-dot online"></span>
+                      <span class="status-text">Online</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="more-btn">
+                  <span class="icon" data-icon="more_vert"></span>
+                </button>
+              </div>
+              <div class="progress-section">
+                <div class="progress-label">
+                  <span class="label">CPU Usage</span>
+                  <span class="value">64%</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill primary" style="width: 64%"></div>
+                </div>
+              </div>
+              <div class="workspace-footer">
+                <div class="team-avatars">
+                  <div class="avatar" style="background-color: #a5b4fc; margin-left: 0;"></div>
+                  <div class="avatar" style="background-color: #86efac;"></div>
+                  <div class="avatar" style="background-color: #fbbf24;"></div>
+                  <div class="avatar-count">+8</div>
+                </div>
+                <button class="btn-invite">Invite</button>
+              </div>
+            </div>
+
+            <!-- Workspace: Staging Env -->
+            <div class="workspace-card">
+              <div class="workspace-card-header">
+                <div class="workspace-info">
+                  <div class="workspace-avatar amber">ST</div>
+                  <div>
+                    <h4 class="workspace-name">Staging Env</h4>
+                    <div class="workspace-status">
+                      <span class="status-dot online"></span>
+                      <span class="status-text">Online</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="more-btn">
+                  <span class="icon" data-icon="more_vert"></span>
+                </button>
+              </div>
+              <div class="progress-section">
+                <div class="progress-label">
+                  <span class="label">Storage Usage</span>
+                  <span class="value">28%</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill primary" style="width: 28%"></div>
+                </div>
+              </div>
+              <div class="workspace-footer">
+                <div class="team-avatars">
+                  <div class="avatar" style="background-color: #c4b5fd; margin-left: 0;"></div>
+                  <div class="avatar-count">+2</div>
+                </div>
+                <button class="btn-invite">Invite</button>
+              </div>
+            </div>
+
+            <!-- Workspace: Mobile API -->
+            <div class="workspace-card">
+              <div class="workspace-card-header">
+                <div class="workspace-info">
+                  <div class="workspace-avatar rose">MA</div>
+                  <div>
+                    <h4 class="workspace-name">Mobile API</h4>
+                    <div class="workspace-status">
+                      <span class="status-dot pending"></span>
+                      <span class="status-text">Pending</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="more-btn">
+                  <span class="icon" data-icon="more_vert"></span>
+                </button>
+              </div>
+              <div class="progress-section">
+                <div class="progress-label">
+                  <span class="label">CPU Usage</span>
+                  <span class="value">92%</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill danger" style="width: 92%"></div>
+                </div>
+              </div>
+              <div class="workspace-footer">
+                <div class="team-avatars">
+                  <div class="avatar" style="background-color: #fca5a5; margin-left: 0;"></div>
+                  <div class="avatar" style="background-color: #93c5fd;"></div>
+                  <div class="avatar-count">+4</div>
+                </div>
+                <button class="btn-invite">Invite</button>
+              </div>
+            </div>
+
+            <!-- Add New Workspace -->
+            <div class="workspace-add" id="add-workspace-card">
+              <span class="icon" data-icon="add_circle"></span>
+              <span>Add New Workspace</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Recent Activities Section -->
+        <div>
+          <div class="section-header">
+            <h3>Recent Activities</h3>
+          </div>
+
+          <div class="activities-card">
+
+            <!-- Activity 1 -->
+            <div class="activity-item">
+              <div class="activity-content">
+                <div class="activity-icon update">
+                  <span class="icon" data-icon="update"></span>
+                </div>
+                <div class="activity-details">
+                  <p class="activity-title">Muhammet updated Server #4</p>
+                  <p class="activity-desc">Configured SSL certificates for staging.</p>
+                  <p class="activity-time">2 mins ago</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity 2 -->
+            <div class="activity-item">
+              <div class="activity-content">
+                <div class="activity-icon member">
+                  <span class="icon" data-icon="person_add"></span>
+                </div>
+                <div class="activity-details">
+                  <p class="activity-title">New member joined 'Marketing'</p>
+                  <p class="activity-desc">Selin G. has been added to workspace.</p>
+                  <p class="activity-time">45 mins ago</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity 3 -->
+            <div class="activity-item">
+              <div class="activity-content">
+                <div class="activity-icon deploy">
+                  <span class="icon" data-icon="rocket_launch"></span>
+                </div>
+                <div class="activity-details">
+                  <p class="activity-title">Deployment successful: 'API'</p>
+                  <p class="activity-desc">v2.4.0 successfully pushed to production.</p>
+                  <p class="activity-time">3 hours ago</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity 4 -->
+            <div class="activity-item">
+              <div class="activity-content">
+                <div class="activity-icon alert">
+                  <span class="icon" data-icon="warning"></span>
+                </div>
+                <div class="activity-details">
+                  <p class="activity-title">High Memory Alert</p>
+                  <p class="activity-desc">Mobile API reached 90% usage threshold.</p>
+                  <p class="activity-time">5 hours ago</p>
+                </div>
+              </div>
+            </div>
+
+            <button class="load-more-btn" id="load-more-activities">
+              LOAD MORE ACTIVITIES
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
