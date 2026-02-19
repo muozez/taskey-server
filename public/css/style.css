@@ -625,3 +625,117 @@ select.settings-input { cursor: pointer; }
   .search-box input { width: 100%; }
   .btn-primary { width: 100%; justify-content: center; }
 }
+
+/* ===== Join Key Styles ===== */
+.join-key-section {
+  background: var(--bg-secondary, #f4f4f5);
+  border: 1px solid var(--border, #e4e4e7);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.join-key-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #71717a);
+  margin-bottom: 8px;
+}
+
+.join-key-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-primary, #fff);
+  border: 2px dashed var(--primary, #6366f1);
+  border-radius: 8px;
+  padding: 8px 16px;
+}
+
+.join-key-display-lg {
+  padding: 14px 28px;
+  border-width: 2px;
+  border-style: dashed;
+}
+
+.join-key-code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--primary, #6366f1);
+  user-select: all;
+}
+
+.join-key-code-lg {
+  font-size: 1.75rem;
+  letter-spacing: 0.2em;
+}
+
+.join-key-hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #71717a);
+  margin-top: 8px;
+  margin-bottom: 10px;
+}
+
+.btn-copy {
+  background: none;
+  border: 1px solid var(--border, #e4e4e7);
+  border-radius: 6px;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--text-secondary, #71717a);
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-copy:hover {
+  background: var(--primary, #6366f1);
+  color: #fff;
+  border-color: var(--primary, #6366f1);
+}
+
+.btn-sm {
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+/* ===== Connected Clients ===== */
+.connected-clients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.client-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-secondary, #f4f4f5);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.client-name {
+  font-weight: 500;
+  color: var(--text-primary, #18181b);
+}
+
+.client-host {
+  color: var(--text-secondary, #71717a);
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.detail-item-full {
+  grid-column: 1 / -1;
+}
