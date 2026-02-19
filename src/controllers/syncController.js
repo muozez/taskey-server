@@ -467,6 +467,12 @@ async function heartbeat(req, res) {
 
     const workspace = await Workspace.findByPk(client.workspace_id);
 
+    // Workspace durumunu güncelle (client online → workspace online)
+    if (workspace && workspace.status !== "online") {
+      workspace.status = "online";
+      await workspace.save();
+    }
+
     // Bekleyen conflict sayısı
     const conflictCount = await DiffEntry.count({
       where: {

@@ -42,6 +42,30 @@ function formatWorkspace(ws, clients) {
   };
 }
 
+// ===== Helper: Workspace durumunu bağlı client'lara göre güncelle =====
+async function refreshWorkspaceStatus(workspaceId) {
+  const ws = await Workspace.findByPk(workspaceId);
+  if (!ws) return;
+  const onlineCount = await WorkspaceClient.count({
+    where: { workspace_id: workspaceId, is_online: true },
+  });
+  const totalCount = await WorkspaceClient.count({
+    where: { workspace_id: workspaceId },
+  });
+  let newStatus;
+  if (onlineCount > 0) {
+    newStatus = "online";
+  } else if (totalCount > 0) {
+    newStatus = "offline";
+  } else {
+    newStatus = "pending";
+  }
+  if (ws.status !== newStatus) {
+    ws.status = newStatus;
+    await ws.save();
+  }
+}
+
 // GET /api/workspaces — Tüm workspace'leri listele
 async function list(req, res) {
   try {
@@ -199,6 +223,9 @@ async function join(req, res) {
       client.last_seen_at = new Date();
       await client.save();
     }
+
+    // Workspace durumunu güncelle (pending/offline → online)
+    await refreshWorkspaceStatus(ws.id);
 
     await logActivity("client_joined", `İstemci "${ws.name}" alanına katıldı`, `${clientName || "Anonim"} (${hostname || "unknown"}) bağlandı.`, clientName || "Anonim", { workspaceId: ws.id, hostname });
 
@@ -427,4 +454,5 @@ module.exports = {
   createUser,
   deleteUser,
   listActivities,
+  refreshWorkspaceStatus,
 };
