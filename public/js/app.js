@@ -42,6 +42,35 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ===== Auth Helpers =====
+function getAuthToken() {
+  return sessionStorage.getItem("taskey_token") || localStorage.getItem("taskey_token");
+}
+
+function getAuthUser() {
+  const raw = sessionStorage.getItem("taskey_user") || localStorage.getItem("taskey_user");
+  try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+
+function clearAuth() {
+  sessionStorage.removeItem("taskey_token");
+  sessionStorage.removeItem("taskey_user");
+  localStorage.removeItem("taskey_token");
+  localStorage.removeItem("taskey_user");
+}
+
+async function logout() {
+  const token = getAuthToken();
+  try {
+    await fetch("/api/logout", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+  } catch { /* ignore */ }
+  clearAuth();
+  window.location.replace("/login.html");
+}
+
 function getFormattedDate() {
   const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
   const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
@@ -327,6 +356,29 @@ function bindWorkspaceEvents(container) {
 
 // ===== Init =====
 document.addEventListener("DOMContentLoaded", () => {
+  // ---- Auth check ----
+  if (!getAuthToken()) {
+    window.location.replace("/login.html");
+    return;
+  }
+
+  // ---- Load user info ----
+  const user = getAuthUser();
+  if (user) {
+    const nameEl = document.querySelector(".user-info .name");
+    const roleEl = document.querySelector(".user-info .role");
+    const avatarEl = document.querySelector(".user-avatar-placeholder");
+    const greetingEl = document.querySelector(".page-header h2");
+    if (nameEl) nameEl.textContent = user.name;
+    if (roleEl) roleEl.textContent = user.role;
+    if (avatarEl) avatarEl.textContent = user.name.charAt(0).toUpperCase();
+    if (greetingEl) greetingEl.textContent = `İyi Günler, ${user.name}!`;
+  }
+
+  // ---- Logout button ----
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
   // Date
   const dateEl = document.getElementById("current-date");
   if (dateEl) dateEl.textContent = getFormattedDate();

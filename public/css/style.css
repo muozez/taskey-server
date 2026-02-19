@@ -165,6 +165,22 @@ input, select, textarea { font-family: inherit; }
 .user-info .name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-info .role { font-size: 12px; color: var(--slate-500); }
 
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-lg);
+  color: var(--slate-400);
+  flex-shrink: 0;
+  transition: color 0.2s, background-color 0.2s;
+}
+.logout-btn:hover {
+  color: var(--rose-600);
+  background-color: var(--rose-bg);
+}
+
 /* ===== Main Content ===== */
 .main-content {
   flex: 1;
