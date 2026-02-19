@@ -82,11 +82,10 @@
     </div>
   </div>
 
+  <script src="/js/auth.js"></script>
   <script>
-    // If already logged in, redirect to dashboard
-    if (sessionStorage.getItem("taskey_token") || localStorage.getItem("taskey_token")) {
-      window.location.replace("/");
-    }
+    // If already logged in (and token is valid), redirect to dashboard
+    Auth.redirectIfAuthenticated();
 
     const form = document.getElementById("login-form");
     const emailInput = document.getElementById("login-email");
@@ -127,13 +126,7 @@
 
         if (res.ok && data.token) {
           const remember = document.getElementById("login-remember").checked;
-          if (remember) {
-            localStorage.setItem("taskey_token", data.token);
-            localStorage.setItem("taskey_user", JSON.stringify(data.user));
-          } else {
-            sessionStorage.setItem("taskey_token", data.token);
-            sessionStorage.setItem("taskey_user", JSON.stringify(data.user));
-          }
+          Auth.setCredentials(data.token, data.user, remember);
           window.location.replace("/");
         } else {
           errorText.textContent = data.message || "Geçersiz e-posta veya şifre";

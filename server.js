@@ -129,16 +129,7 @@ const server = http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(parsedUrl.pathname);
   const safePath = pathname === "/" || pathname === "/index.html" ? "index.html" : pathname.replace(/^\//, "");
 
-  // Protect index.html — require auth (allow login page and static assets)
-  if (safePath === "index.html") {
-    const token = extractToken(req);
-    const session = token ? getSession(token) : null;
-    if (!session) {
-      res.writeHead(302, { "Location": "/login.html" });
-      res.end();
-      return;
-    }
-  }
+  // Auth check is handled client-side via auth.js
 
   // Resolve and check for path traversal
   const filePath = path.resolve(PUBLIC_ROOT, safePath);

@@ -42,34 +42,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ===== Auth Helpers =====
-function getAuthToken() {
-  return sessionStorage.getItem("taskey_token") || localStorage.getItem("taskey_token");
-}
-
-function getAuthUser() {
-  const raw = sessionStorage.getItem("taskey_user") || localStorage.getItem("taskey_user");
-  try { return raw ? JSON.parse(raw) : null; } catch { return null; }
-}
-
-function clearAuth() {
-  sessionStorage.removeItem("taskey_token");
-  sessionStorage.removeItem("taskey_user");
-  localStorage.removeItem("taskey_token");
-  localStorage.removeItem("taskey_user");
-}
-
-async function logout() {
-  const token = getAuthToken();
-  try {
-    await fetch("/api/logout", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${token}` },
-    });
-  } catch { /* ignore */ }
-  clearAuth();
-  window.location.replace("/login.html");
-}
+// Auth is handled by auth.js (Auth module)
 
 function getFormattedDate() {
   const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
@@ -355,15 +328,13 @@ function bindWorkspaceEvents(container) {
 }
 
 // ===== Init =====
-document.addEventListener("DOMContentLoaded", () => {
-  // ---- Auth check ----
-  if (!getAuthToken()) {
-    window.location.replace("/login.html");
-    return;
-  }
+document.addEventListener("DOMContentLoaded", async () => {
+  // ---- Auth check via auth.js ----
+  const isAuthed = await Auth.requireAuth();
+  if (!isAuthed) return;
 
   // ---- Load user info ----
-  const user = getAuthUser();
+  const user = Auth.getUser();
   if (user) {
     const nameEl = document.querySelector(".user-info .name");
     const roleEl = document.querySelector(".user-info .role");
@@ -377,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Logout button ----
   const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn) logoutBtn.addEventListener("click", logout);
+  if (logoutBtn) logoutBtn.addEventListener("click", () => Auth.logout());
 
   // Date
   const dateEl = document.getElementById("current-date");
