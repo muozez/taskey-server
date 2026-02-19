@@ -15,6 +15,7 @@ const ICONS = {
   add_circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M440-280h80v-160h160v-80H520v-160h-80v160H280v80h160v160Zm40 200q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>`,
   update: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-120q-75 0-140.5-28.5t-114-77q-48.5-48.5-77-114T120-480q0-75 28.5-140.5t77-114q48.5-48.5 114-77T480-840q82 0 155.5 35T760-706v-94h80v240H600v-80h110q-41-56-101-88t-129-32q-117 0-198.5 81.5T200-480q0 117 81.5 198.5T480-200q105 0 183.5-68T756-440h82q-15 137-117.5 228.5T480-120Z"/></svg>`,
   person_add: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M720-400v-120H600v-80h120v-120h80v120h120v80H800v120h-80Zm-360-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Z"/></svg>`,
+  person: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"/></svg>`,
   rocket_launch: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M226-346q-17-52-25.5-106T192-560q0-155 72.5-292T480-960q143 71 215.5 208T768-460q0 54-8.5 108T734-246l-62-62q12-40 18-82t6-70q0-130-57.5-247.5T480-860Q375-766 317.5-648.5T260-460q0 28 6 70t18 82l-58 62ZM480-200q-51 0-96.5-17.5T300-266l44-44q26 20 60 31t76 11q42 0 76-11t60-31l44 44q-38 31-83.5 48.5T480-200Zm0-200q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Z"/></svg>`,
   warning: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m40-120 440-760 440 760H40Zm138-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm-40-120h80v-200h-80v200Z"/></svg>`,
   close: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>`,
@@ -57,7 +58,7 @@ async function loadStats() {
     const el = (id) => document.getElementById(id);
     if (el("stat-total-workspaces")) el("stat-total-workspaces").textContent = s.totalWorkspaces;
     if (el("stat-online-workspaces")) el("stat-online-workspaces").textContent = s.onlineWorkspaces;
-    if (el("stat-unique-servers")) el("stat-unique-servers").textContent = s.uniqueServers;
+    if (el("stat-total-users")) el("stat-total-users").textContent = s.totalUsers;
     if (el("stat-total-clients")) el("stat-total-clients").textContent = s.totalClients;
     const badge = el("stat-badge-new");
     if (badge) {
@@ -72,13 +73,6 @@ async function loadStats() {
     console.error("Stats yükleme hatası:", err);
   }
 }
-
-const SERVERS = [
-  { id: 1, name: "Sunucu #1 — EU West", ip: "185.32.110.12", status: "Çevrimiçi", cpu: "24%", ram: "4.2 GB / 16 GB", uptime: "42 gün" },
-  { id: 2, name: "Sunucu #2 — US East", ip: "104.21.55.78", status: "Çevrimiçi", cpu: "51%", ram: "11.3 GB / 32 GB", uptime: "18 gün" },
-  { id: 3, name: "Sunucu #3 — Asia", ip: "45.77.200.15", status: "Çevrimdışı", cpu: "—", ram: "— / 8 GB", uptime: "—" },
-  { id: 4, name: "Sunucu #4 — EU Central", ip: "162.55.44.99", status: "Çevrimiçi", cpu: "78%", ram: "6.1 GB / 8 GB", uptime: "7 gün" },
-];
 
 // ===== Helpers =====
 function escapeHtml(str) {
@@ -147,8 +141,8 @@ function navigateTo(pageName) {
   if (navItem) navItem.classList.add("active");
   // Render page-specific content
   if (pageName === "workspaces") renderAllWorkspaces();
-  if (pageName === "servers") renderServers();
-  if (pageName === "dashboard") renderDashboardWorkspaces();
+  if (pageName === "users") renderUsers();
+  if (pageName === "dashboard") { renderDashboardWorkspaces(); loadActivities(); }
   // Re-inject icons
   injectIcons();
   animateProgressBars();
@@ -258,26 +252,145 @@ async function renderAllWorkspaces() {
   bindWorkspaceEvents(grid);
 }
 
-function renderServers() {
-  const grid = document.getElementById("servers-grid");
+function renderUsers() {
+  const grid = document.getElementById("users-grid");
   if (!grid) return;
-  grid.innerHTML = SERVERS.map((s) => `
-    <div class="server-card">
-      <div class="server-card-header">
-        <h4>${escapeHtml(s.name)}</h4>
-        <div class="workspace-status">
-          <span class="status-dot ${s.status === 'Çevrimiçi' ? 'online' : 'offline'}"></span>
-          <span class="status-text">${escapeHtml(s.status)}</span>
+  grid.innerHTML = '<p class="text-muted" style="text-align:center;padding:32px 0;">Yükleniyor...</p>';
+  apiFetch("/api/users").then(data => {
+    const users = data.users || [];
+    if (users.length === 0) {
+      grid.innerHTML = '<p class="text-muted" style="text-align:center;padding:32px 0;">Henüz kullanıcı yok.</p>';
+      return;
+    }
+    grid.innerHTML = users.map(u => {
+      const initials = u.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+      const dateStr = u.createdAt ? new Date(u.createdAt).toLocaleDateString("tr-TR") : "—";
+      return `
+        <div class="server-card">
+          <div class="server-card-header">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="workspace-avatar indigo" style="width:36px;height:36px;font-size:0.85rem;">${escapeHtml(initials)}</div>
+              <div>
+                <h4 style="margin:0;">${escapeHtml(u.name)}</h4>
+                <span class="status-text" style="font-size:0.8rem;">${escapeHtml(u.email)}</span>
+              </div>
+            </div>
+            <span class="settings-badge">${escapeHtml(u.role || "Üye")}</span>
+          </div>
+          <div class="server-meta">
+            <div class="server-meta-row"><span class="label">Kayıt Tarihi</span><span class="value">${dateStr}</span></div>
+          </div>
+          <div style="text-align:right;padding:0 16px 12px;">
+            <button class="btn-danger btn-sm delete-user-btn" data-user-id="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.name)}">Sil</button>
+          </div>
         </div>
-      </div>
-      <div class="server-meta">
-        <div class="server-meta-row"><span class="label">IP Adresi</span><span class="value">${escapeHtml(s.ip)}</span></div>
-        <div class="server-meta-row"><span class="label">CPU</span><span class="value">${escapeHtml(s.cpu)}</span></div>
-        <div class="server-meta-row"><span class="label">RAM</span><span class="value">${escapeHtml(s.ram)}</span></div>
-        <div class="server-meta-row"><span class="label">Çalışma Süresi</span><span class="value">${escapeHtml(s.uptime)}</span></div>
-      </div>
-    </div>
-  `).join("");
+      `;
+    }).join("");
+    // Bind delete
+    grid.querySelectorAll(".delete-user-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const userId = btn.getAttribute("data-user-id");
+        const userName = btn.getAttribute("data-user-name");
+        confirmAction(`"${userName}" kullanıcısını silmek istediğinize emin misiniz?`, async () => {
+          try {
+            await apiFetch(`/api/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
+            showToast(`"${userName}" silindi`, "info");
+            renderUsers();
+          } catch (err) {
+            showToast("Silme hatası: " + err.message, "error");
+          }
+        });
+      });
+    });
+  }).catch(err => {
+    grid.innerHTML = `<p class="text-muted" style="text-align:center;padding:32px 0;">Hata: ${err.message}</p>`;
+  });
+}
+
+// ===== Activities =====
+let activitiesOffset = 0;
+const ACTIVITIES_LIMIT = 10;
+
+function timeAgo(dateStr) {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return "Az önce";
+  if (diff < 3600) return `${Math.floor(diff / 60)} dakika önce`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} saat önce`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} gün önce`;
+  return date.toLocaleDateString("tr-TR");
+}
+
+function activityIconClass(type) {
+  const map = {
+    workspace_created: "deploy",
+    workspace_deleted: "alert",
+    client_joined: "member",
+    key_regenerated: "update",
+    user_created: "member",
+    user_deleted: "alert",
+  };
+  return map[type] || "update";
+}
+
+function activityIconName(type) {
+  const map = {
+    workspace_created: "add_circle",
+    workspace_deleted: "warning",
+    client_joined: "person_add",
+    key_regenerated: "update",
+    user_created: "person_add",
+    user_deleted: "warning",
+  };
+  return map[type] || "update";
+}
+
+async function loadActivities(reset) {
+  if (reset) activitiesOffset = 0;
+  try {
+    const data = await apiFetch(`/api/activities?limit=${ACTIVITIES_LIMIT}&offset=${activitiesOffset}`);
+    const listEl = document.getElementById("activities-list");
+    const loadMoreBtn = document.getElementById("load-more-activities");
+    if (!listEl) return;
+
+    const items = data.activities || [];
+    if (activitiesOffset === 0) listEl.innerHTML = "";
+
+    if (items.length === 0 && activitiesOffset === 0) {
+      listEl.innerHTML = '<p class="text-muted" style="text-align:center;padding:32px 0;">Henüz aktivite yok.</p>';
+      if (loadMoreBtn) loadMoreBtn.classList.add("hidden");
+      return;
+    }
+
+    items.forEach(a => {
+      const el = document.createElement("div");
+      el.className = "activity-item";
+      el.innerHTML = `
+        <div class="activity-content">
+          <div class="activity-icon ${activityIconClass(a.type)}"><span class="icon" data-icon="${activityIconName(a.type)}"></span></div>
+          <div class="activity-details">
+            <p class="activity-title">${escapeHtml(a.title)}</p>
+            <p class="activity-desc">${escapeHtml(a.description)}</p>
+            <p class="activity-time">${timeAgo(a.createdAt)}</p>
+          </div>
+        </div>
+      `;
+      listEl.appendChild(el);
+    });
+
+    activitiesOffset += items.length;
+    if (loadMoreBtn) {
+      loadMoreBtn.classList.toggle("hidden", activitiesOffset >= data.total);
+    }
+    injectIcons();
+  } catch (err) {
+    console.error("Aktivite yükleme hatası:", err);
+    const listEl = document.getElementById("activities-list");
+    if (listEl && activitiesOffset === 0) {
+      listEl.innerHTML = '<p class="text-muted" style="text-align:center;padding:32px 0;">Aktiviteler yüklenemedi.</p>';
+    }
+  }
 }
 
 // ===== Context Menu =====
@@ -561,26 +674,63 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (btn) btn.addEventListener("click", () => openModal("modal-create-workspace"));
   });
 
+  // ---- Create user button ----
+  const createUserBtn = document.getElementById("create-user-btn");
+  if (createUserBtn) createUserBtn.addEventListener("click", () => openModal("modal-create-user"));
+
+  // ---- Submit new user ----
+  const userSubmitBtn = document.getElementById("user-submit");
+  if (userSubmitBtn) userSubmitBtn.addEventListener("click", async () => {
+    const name = document.getElementById("user-name").value.trim();
+    const email = document.getElementById("user-email").value.trim();
+    const password = document.getElementById("user-password").value;
+    const role = document.getElementById("user-role").value;
+
+    if (!name || !email || !password) {
+      showToast("Lütfen tüm alanları doldurun", "error");
+      return;
+    }
+    if (password.length < 6) {
+      showToast("Şifre en az 6 karakter olmalıdır", "error");
+      return;
+    }
+
+    try {
+      await apiFetch("/api/users", {
+        method: "POST",
+        body: { name, email, password, role },
+      });
+      closeModal("modal-create-user");
+      document.getElementById("user-name").value = "";
+      document.getElementById("user-email").value = "";
+      document.getElementById("user-password").value = "";
+      document.getElementById("user-role").value = "Üye";
+      showToast(`"${name}" kullanıcısı oluşturuldu`);
+      renderUsers();
+      loadStats();
+      loadActivities(true);
+    } catch (err) {
+      showToast("Hata: " + err.message, "error");
+    }
+  });
+
   // ---- Submit new workspace ----
   document.getElementById("ws-submit").addEventListener("click", async () => {
     const name = document.getElementById("ws-name").value.trim();
-    const server = document.getElementById("ws-server").value;
     if (!name) { showToast("Lütfen bir ad girin", "error"); return; }
-    if (!server) { showToast("Lütfen bir sunucu seçin", "error"); return; }
 
     const description = document.getElementById("ws-desc").value.trim();
 
     try {
       const data = await apiFetch("/api/workspaces", {
         method: "POST",
-        body: { name, server, description },
+        body: { name, description },
       });
 
       const ws = data.workspace;
 
       closeModal("modal-create-workspace");
       document.getElementById("ws-name").value = "";
-      document.getElementById("ws-server").value = "";
       document.getElementById("ws-desc").value = "";
 
       // Katılım anahtarını göster
@@ -588,6 +738,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       await renderDashboardWorkspaces();
       await renderAllWorkspaces();
+      loadActivities(true);
       injectIcons();
       animateProgressBars();
     } catch (err) {
@@ -642,6 +793,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           await renderDashboardWorkspaces();
           await renderAllWorkspaces();
+          loadActivities(true);
           injectIcons();
           animateProgressBars();
         });
@@ -659,8 +811,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---- Load more activities ----
   document.getElementById("load-more-activities").addEventListener("click", () => {
-    showToast("Daha fazla aktivite yükleniyor...", "info");
+    loadActivities(false);
   });
+
+  // ---- Load initial activities ----
+  loadActivities(true);
 
   // ---- Keyboard: Escape closes modals & context menu ----
   document.addEventListener("keydown", (e) => {

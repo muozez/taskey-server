@@ -3,6 +3,7 @@ const Workspace = require("./Workspace");
 const WorkspaceClient = require("./WorkspaceClient");
 const DiffEntry = require("./DiffEntry");
 const SyncSnapshot = require("./SyncSnapshot");
+const ActivityLog = require("./ActivityLog");
 
 // ===== Associations =====
 
@@ -32,4 +33,5 @@ module.exports = {
   WorkspaceClient,
   DiffEntry,
   SyncSnapshot,
+  ActivityLog,
 };

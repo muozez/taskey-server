@@ -134,6 +134,11 @@ const server = http.createServer(async (req, res) => {
         role: "Yönetici",
       });
       console.log(`[Setup] Root hesap oluşturuldu: ${user.email}`);
+      // Log activity
+      try {
+        const { logActivity } = require("./src/utils/activityLogger");
+        await logActivity("user_created", `"${user.name}" root hesabı oluşturuldu`, "İlk kurulum tamamlandı.", user.name, { userId: user.id });
+      } catch (_) {}
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ success: true, message: "Hesap başarıyla oluşturuldu" }));
     } catch (err) {

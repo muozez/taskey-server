@@ -2,6 +2,7 @@ const { Workspace, WorkspaceClient } = require("../models/index");
 const { sendSuccess, sendError } = require("../utils/response");
 const { parseBody } = require("../utils/parseBody");
 const { isValidKeyFormat, generateJoinKey } = require("../utils/keyGenerator");
+const { logActivity } = require("../utils/activityLogger");
 
 /**
  * Workspace Controller — PostgreSQL (Sequelize ORM) ile çalışır
@@ -74,14 +75,10 @@ async function getById(req, res, id) {
 async function create(req, res) {
   try {
     const body = await parseBody(req);
-    const { name, server, description } = body;
+    const { name, description } = body;
 
     if (!name || !name.trim()) {
       sendError(res, 400, "Çalışma alanı adı gerekli");
-      return;
-    }
-    if (!server || !server.trim()) {
-      sendError(res, 400, "Sunucu seçimi gerekli");
       return;
     }
 
@@ -95,11 +92,14 @@ async function create(req, res) {
       abbr,
       color: colors[wsCount % colors.length],
       status: "pending",
-      server: server.trim(),
+      server: "Docker",
       description: (description || "").trim(),
       join_key: generateJoinKey(),
       owner_id: req.user ? (await _findUserIdByEmail(req.user.email)) : null,
     });
+
+    const actorName = req.user ? req.user.name : "Sistem";
+    await logActivity("workspace_created", `"${trimmedName}" çalışma alanı oluşturuldu`, `${actorName} yeni bir çalışma alanı oluşturdu.`, actorName, { workspaceId: ws.id, workspaceName: trimmedName });
 
     sendSuccess(res, { workspace: formatWorkspace(ws, []) }, 201);
   } catch (err) {
@@ -110,11 +110,17 @@ async function create(req, res) {
 // DELETE /api/workspaces/:id — Workspace sil
 async function remove(req, res, id) {
   try {
-    const deleted = await Workspace.destroy({ where: { id } });
-    if (!deleted) {
+    const ws = await Workspace.findByPk(id);
+    if (!ws) {
       sendError(res, 404, "Çalışma alanı bulunamadı");
       return;
     }
+    const wsName = ws.name;
+    await Workspace.destroy({ where: { id } });
+
+    const actorName = req.user ? req.user.name : "Sistem";
+    await logActivity("workspace_deleted", `"${wsName}" çalışma alanı silindi`, `${actorName} çalışma alanını sildi.`, actorName, { workspaceName: wsName });
+
     sendSuccess(res, { message: "Çalışma alanı silindi" });
   } catch (err) {
     sendError(res, 500, "Silme hatası: " + err.message);
@@ -131,6 +137,9 @@ async function regenerateKey(req, res, id) {
     }
     ws.join_key = generateJoinKey();
     await ws.save();
+
+    const actorName = req.user ? req.user.name : "Sistem";
+    await logActivity("key_regenerated", `"${ws.name}" anahtarı yenilendi`, `${actorName} katılım anahtarını yeniledi.`, actorName, { workspaceId: ws.id });
 
     const clients = await WorkspaceClient.findAll({ where: { workspace_id: id } });
     sendSuccess(res, { workspace: formatWorkspace(ws, clients) });
@@ -178,6 +187,8 @@ async function join(req, res) {
       client.last_seen_at = new Date();
       await client.save();
     }
+
+    await logActivity("client_joined", `İstemci "${ws.name}" alanına katıldı`, `${clientName || "Anonim"} (${hostname || "unknown"}) bağlandı.`, clientName || "Anonim", { workspaceId: ws.id, hostname });
 
     sendSuccess(res, {
       message: "Çalışma alanına başarıyla katıldınız",
@@ -235,13 +246,14 @@ async function _findUserIdByEmail(email) {
 // GET /api/stats — Dashboard istatistikleri
 async function stats(req, res) {
   try {
-    const { Workspace, WorkspaceClient } = require("../models/index");
+    const { Workspace, WorkspaceClient, User } = require("../models/index");
     const { Op } = require("sequelize");
 
     const totalWorkspaces = await Workspace.count();
     const onlineWorkspaces = await Workspace.count({ where: { status: "online" } });
     const totalClients = await WorkspaceClient.count();
     const onlineClients = await WorkspaceClient.count({ where: { is_online: true } });
+    const totalUsers = await User.count();
 
     // Bu hafta oluşturulan workspace sayısı
     const oneWeekAgo = new Date();
@@ -250,25 +262,128 @@ async function stats(req, res) {
       where: { created_at: { [Op.gte]: oneWeekAgo } },
     });
 
-    // Benzersiz sunucu sayısı
-    const servers = await Workspace.findAll({
-      attributes: ["server"],
-      group: ["server"],
-      where: { server: { [Op.ne]: null, [Op.ne]: "" } },
-    });
-
     sendSuccess(res, {
       stats: {
         totalWorkspaces,
         onlineWorkspaces,
         totalClients,
         onlineClients,
+        totalUsers,
         newThisWeek,
-        uniqueServers: servers.length,
       },
     });
   } catch (err) {
     sendError(res, 500, "İstatistik alınamadı: " + err.message);
+  }
+}
+
+// GET /api/users — Kullanıcı listesi
+async function listUsers(req, res) {
+  try {
+    const { User } = require("../models/index");
+    const users = await User.findAll({
+      attributes: ["id", "name", "email", "role", "created_at"],
+      order: [["created_at", "ASC"]],
+    });
+    sendSuccess(res, { users: users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at || u.createdAt })) });
+  } catch (err) {
+    sendError(res, 500, "Kullanıcı listesi alınamadı: " + err.message);
+  }
+}
+
+// POST /api/users — Yeni kullanıcı oluştur
+async function createUser(req, res) {
+  try {
+    const { User } = require("../models/index");
+    const body = await parseBody(req);
+    const { name, email, password, role } = body;
+
+    if (!name || !email || !password) {
+      sendError(res, 400, "Ad, e-posta ve şifre zorunludur");
+      return;
+    }
+    if (password.length < 6) {
+      sendError(res, 400, "Şifre en az 6 karakter olmalıdır");
+      return;
+    }
+
+    const user = await User.create({
+      name: name.trim(),
+      email: email.trim(),
+      password,
+      role: role || "Üye",
+    });
+
+    const actorName = req.user ? req.user.name : "Sistem";
+    await logActivity("user_created", `"${user.name}" kullanıcısı oluşturuldu`, `${actorName} yeni bir kullanıcı ekledi.`, actorName, { userId: user.id, userName: user.name });
+
+    sendSuccess(res, { user: { id: user.id, name: user.name, email: user.email, role: user.role } }, 201);
+  } catch (err) {
+    const message = err.name === "SequelizeUniqueConstraintError"
+      ? "Bu e-posta adresi zaten kullanılıyor"
+      : "Kullanıcı oluşturma hatası: " + err.message;
+    sendError(res, 400, message);
+  }
+}
+
+// DELETE /api/users/:id — Kullanıcı sil
+async function deleteUser(req, res, id) {
+  try {
+    const { User } = require("../models/index");
+    const user = await User.findByPk(id);
+    if (!user) {
+      sendError(res, 404, "Kullanıcı bulunamadı");
+      return;
+    }
+
+    // Kendini silmeyi engelle
+    if (req.user && req.user.email === user.email) {
+      sendError(res, 400, "Kendi hesabınızı silemezsiniz");
+      return;
+    }
+
+    const userName = user.name;
+    await user.destroy();
+
+    const actorName = req.user ? req.user.name : "Sistem";
+    await logActivity("user_deleted", `"${userName}" kullanıcısı silindi`, `${actorName} kullanıcıyı sildi.`, actorName, { userName });
+
+    sendSuccess(res, { message: "Kullanıcı silindi" });
+  } catch (err) {
+    sendError(res, 500, "Silme hatası: " + err.message);
+  }
+}
+
+// GET /api/activities — Son aktiviteler
+async function listActivities(req, res) {
+  try {
+    const { ActivityLog } = require("../models/index");
+    const url = new URL(req.url, "http://localhost");
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "20", 10), 100);
+    const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+
+    const { count, rows } = await ActivityLog.findAndCountAll({
+      order: [["created_at", "DESC"]],
+      limit,
+      offset,
+    });
+
+    sendSuccess(res, {
+      activities: rows.map(a => ({
+        id: a.id,
+        type: a.type,
+        title: a.title,
+        description: a.description,
+        actorName: a.actor_name,
+        meta: a.meta,
+        createdAt: a.created_at || a.createdAt,
+      })),
+      total: count,
+      limit,
+      offset,
+    });
+  } catch (err) {
+    sendError(res, 500, "Aktivite listesi alınamadı: " + err.message);
   }
 }
 
@@ -281,4 +396,8 @@ module.exports = {
   join,
   validateKey,
   stats,
+  listUsers,
+  createUser,
+  deleteUser,
+  listActivities,
 };

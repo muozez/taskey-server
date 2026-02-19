@@ -3,7 +3,7 @@ const { requireAuth } = require("../middleware/auth");
 const { sendError } = require("../utils/response");
 
 /**
- * Workspace route'ları
+ * Workspace + User + Activity route'ları
  *
  * Korunan (auth gerekli):
  *   GET    /api/workspaces             — Listele
@@ -11,6 +11,10 @@ const { sendError } = require("../utils/response");
  *   POST   /api/workspaces             — Oluştur
  *   DELETE /api/workspaces/:id         — Sil
  *   POST   /api/workspaces/:id/regenerate-key — Key yenile
+ *   GET    /api/users                  — Kullanıcı listesi
+ *   POST   /api/users                  — Kullanıcı oluştur
+ *   DELETE /api/users/:id              — Kullanıcı sil
+ *   GET    /api/activities             — Son aktiviteler
  *
  * Public (auth gereksiz — lokal client'lar için):
  *   POST   /api/join                   — Key ile katıl
@@ -37,6 +41,40 @@ function match(req) {
     return (req, res) => {
       if (!requireAuth(req, res)) return;
       workspaceController.stats(req, res);
+    };
+  }
+
+  // GET /api/activities — Son aktiviteler
+  if (url === "/api/activities" && method === "GET") {
+    return (req, res) => {
+      if (!requireAuth(req, res)) return;
+      workspaceController.listActivities(req, res);
+    };
+  }
+
+  // GET /api/users — Kullanıcı listesi
+  if (url === "/api/users" && method === "GET") {
+    return (req, res) => {
+      if (!requireAuth(req, res)) return;
+      workspaceController.listUsers(req, res);
+    };
+  }
+
+  // POST /api/users — Kullanıcı oluştur
+  if (url === "/api/users" && method === "POST") {
+    return (req, res) => {
+      if (!requireAuth(req, res)) return;
+      workspaceController.createUser(req, res);
+    };
+  }
+
+  // DELETE /api/users/:id — Kullanıcı sil
+  const userDeleteMatch = url.match(/^\/api\/users\/([^/]+)$/);
+  if (userDeleteMatch && method === "DELETE") {
+    const id = decodeURIComponent(userDeleteMatch[1]);
+    return (req, res) => {
+      if (!requireAuth(req, res)) return;
+      workspaceController.deleteUser(req, res, id);
     };
   }
 

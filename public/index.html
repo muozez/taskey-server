@@ -39,9 +39,9 @@
           <span class="icon" data-icon="layers"></span>
           <span>Çalışma Alanları</span>
         </a>
-        <a href="#" class="nav-item" data-page="servers">
-          <span class="icon" data-icon="dns"></span>
-          <span>Sunucular</span>
+        <a href="#" class="nav-item" data-page="users">
+          <span class="icon" data-icon="group"></span>
+          <span>Kullanıcılar</span>
         </a>
         <a href="#" class="nav-item" data-page="settings">
           <span class="icon" data-icon="settings"></span>
@@ -107,10 +107,10 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
-              <div class="stat-icon default"><span class="icon" data-icon="storage"></span></div>
+              <div class="stat-icon default"><span class="icon" data-icon="person"></span></div>
             </div>
-            <p class="stat-label">Benzersiz Sunucu</p>
-            <p class="stat-value" id="stat-unique-servers">—</p>
+            <p class="stat-label">Toplam Kullanıcı</p>
+            <p class="stat-value" id="stat-total-users">—</p>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
@@ -136,48 +136,11 @@
             <div class="section-header">
               <h3>Son Aktiviteler</h3>
             </div>
-            <div class="activities-card">
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon update"><span class="icon" data-icon="update"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Muhammet Sunucu #4'ü güncelledi</p>
-                    <p class="activity-desc">Staging için SSL sertifikaları yapılandırıldı.</p>
-                    <p class="activity-time">2 dakika önce</p>
-                  </div>
-                </div>
+            <div class="activities-card" id="activities-card">
+              <div id="activities-list">
+                <p class="text-muted" style="text-align:center;padding:32px 0;">Yükleniyor...</p>
               </div>
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon member"><span class="icon" data-icon="person_add"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Yeni üye 'Pazarlama' alanına katıldı</p>
-                    <p class="activity-desc">Selin G. çalışma alanına eklendi.</p>
-                    <p class="activity-time">45 dakika önce</p>
-                  </div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon deploy"><span class="icon" data-icon="rocket_launch"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Dağıtım başarılı: 'API'</p>
-                    <p class="activity-desc">v2.4.0 başarıyla production'a gönderildi.</p>
-                    <p class="activity-time">3 saat önce</p>
-                  </div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon alert"><span class="icon" data-icon="warning"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Yüksek Bellek Uyarısı</p>
-                    <p class="activity-desc">Mobile API %90 kullanım eşiğine ulaştı.</p>
-                    <p class="activity-time">5 saat önce</p>
-                  </div>
-                </div>
-              </div>
-              <button class="load-more-btn" id="load-more-activities">DAHA FAZLA AKTİVİTE YÜKLE</button>
+              <button class="load-more-btn hidden" id="load-more-activities">DAHA FAZLA AKTİVİTE YÜKLE</button>
             </div>
           </div>
         </div>
@@ -200,15 +163,60 @@
         <div class="workspaces-grid workspaces-grid-full" id="all-workspaces-grid"></div>
       </div>
 
-      <!-- ========== SAYFA: Sunucular ========== -->
-      <div class="page hidden" id="page-servers">
+      <!-- ========== SAYFA: Kullanıcılar ========== -->
+      <div class="page hidden" id="page-users">
         <header class="page-header">
           <div>
-            <h2>Sunucular</h2>
-            <p class="subtitle">Bağlı sunucularınızı izleyin</p>
+            <h2>Kullanıcılar</h2>
+            <p class="subtitle">Sistem kullanıcılarını yönetin</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn-primary" id="create-user-btn">
+              <span class="icon" data-icon="person_add"></span>
+              Yeni Kullanıcı
+            </button>
           </div>
         </header>
-        <div class="servers-grid" id="servers-grid"></div>
+        <div class="users-grid" id="users-grid">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+
+      <!-- ===== MODAL: Yeni Kullanıcı ===== -->
+      <div class="modal-overlay hidden" id="modal-create-user">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>Yeni Kullanıcı Oluştur</h3>
+            <button class="modal-close" data-close-modal="modal-create-user" aria-label="Kapat">
+              <span class="icon" data-icon="close"></span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Ad Soyad</label>
+              <input type="text" id="user-name" placeholder="Örn: Ahmet Yılmaz" />
+            </div>
+            <div class="form-group">
+              <label>E-posta</label>
+              <input type="email" id="user-email" placeholder="ornek@email.com" />
+            </div>
+            <div class="form-group">
+              <label>Şifre</label>
+              <input type="password" id="user-password" placeholder="En az 6 karakter" />
+            </div>
+            <div class="form-group">
+              <label>Rol</label>
+              <select id="user-role">
+                <option value="Üye">Üye</option>
+                <option value="Yönetici">Yönetici</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" data-close-modal="modal-create-user">İptal</button>
+            <button class="btn-primary" id="user-submit">Oluştur</button>
+          </div>
+        </div>
       </div>
 
       <!-- ========== SAYFA: Ayarlar ========== -->
@@ -286,16 +294,6 @@
         <div class="form-group">
           <label>Çalışma Alanı Adı</label>
           <input type="text" id="ws-name" placeholder="Örn: Backend Production" />
-        </div>
-        <div class="form-group">
-          <label>Sunucu</label>
-          <select id="ws-server">
-            <option value="">Sunucu seçin...</option>
-            <option>Sunucu #1 — EU West</option>
-            <option>Sunucu #2 — US East</option>
-            <option>Sunucu #3 — Asia</option>
-            <option>Sunucu #4 — EU Central</option>
-          </select>
         </div>
         <div class="form-group">
           <label>Açıklama (isteğe bağlı)</label>

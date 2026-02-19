@@ -242,6 +242,8 @@ input, select, textarea { font-family: inherit; }
   transition: background-color 0.2s;
 }
 .btn-danger:hover { background-color: var(--rose-600); }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.text-muted { color: var(--text-secondary); font-size: 0.9rem; }
 
 /* ===== Stats Grid ===== */
 .stats-grid {
@@ -380,8 +382,8 @@ input, select, textarea { font-family: inherit; }
 }
 .load-more-btn:hover { color: var(--primary); }
 
-/* ===== Servers Page ===== */
-.servers-grid {
+/* ===== Users / Servers Page ===== */
+.servers-grid, .users-grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;
 }
 
@@ -600,7 +602,7 @@ select.settings-input { cursor: pointer; }
 }
 @media (max-width: 1024px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .servers-grid { grid-template-columns: 1fr; }
+  .servers-grid, .users-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
   .hamburger-btn { display: flex; }
