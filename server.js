@@ -22,6 +22,7 @@ const PORT = process.env.PORT || 3000;
 
 // ===== Session store (in-memory) =====
 const sessions = new Map();
+const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 saat
 
 function createSession(user) {
   const token = crypto.randomBytes(32).toString("hex");
@@ -31,7 +32,14 @@ function createSession(user) {
 }
 
 function getSession(token) {
-  return sessions.get(token) || null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  // Süresi dolmuş oturumları temizle
+  if (Date.now() - session.createdAt > SESSION_TTL) {
+    sessions.delete(token);
+    return null;
+  }
+  return session;
 }
 
 function destroySession(token) {
@@ -169,8 +177,14 @@ const server = http.createServer(async (req, res) => {
   if (req.url === "/api/login" && req.method === "POST") {
     try {
       const { email, password } = await parseBody(req);
-      const user = await User.findOne({ where: { email, password } });
+      const user = await User.findOne({ where: { email } });
       if (!user) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Geçersiz e-posta veya şifre" }));
+        return;
+      }
+      // Parolayı güvenli bir şekilde doğrula (hash + sabit süreli karşılaştırma)
+      if (!User.verifyPassword(password, user.password)) {
         res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Geçersiz e-posta veya şifre" }));
         return;

@@ -91,6 +91,13 @@ function gracefulShutdown(server, exitCode) {
 
   log.info("Sunucu kapatılıyor...", { timeout: `${TIMEOUT / 1000}s` });
 
+  // Açık bağlantıları takip et ve idle olanları kapat
+  const connections = new Set();
+  server.on("connection", (conn) => {
+    connections.add(conn);
+    conn.on("close", () => connections.delete(conn));
+  });
+
   // Yeni bağlantıları reddet
   server.close(async () => {
     log.info("HTTP sunucusu kapatıldı");
@@ -106,9 +113,18 @@ function gracefulShutdown(server, exitCode) {
     process.exit(exitCode);
   });
 
+  // Mevcut idle bağlantıları kapat (connection draining)
+  for (const conn of connections) {
+    conn.end();
+  }
+
   // Timeout: zorla kapat
   setTimeout(() => {
     log.error("Graceful shutdown zaman aşımı — zorla kapatılıyor");
+    // Kalan bağlantıları destroy et
+    for (const conn of connections) {
+      conn.destroy();
+    }
     process.exit(1);
   }, TIMEOUT).unref();
 }

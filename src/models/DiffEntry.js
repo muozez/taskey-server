@@ -92,6 +92,7 @@ const DiffEntry = sequelize.define("DiffEntry", {
   indexes: [
     { fields: ["workspace_id", "status"] },
     { fields: ["workspace_id", "base_version"] },
+    { fields: ["workspace_id", "status", "applied_version"] },
     { fields: ["client_id"] },
     { fields: ["server_timestamp"] },
   ],

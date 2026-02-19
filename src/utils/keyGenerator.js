@@ -18,10 +18,11 @@ function generateJoinKey() {
 
 /**
  * Key formatını doğrular: XXXX-YYYY
+ * CHARSET ile uyumlu: O, 0, I, 1 hariç (karışıklığı önlemek için)
  */
 function isValidKeyFormat(key) {
   if (typeof key !== "string") return false;
-  return /^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(key.toUpperCase());
+  return /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(key.toUpperCase());
 }
 
 module.exports = { generateJoinKey, isValidKeyFormat };

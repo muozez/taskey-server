@@ -1,5 +1,5 @@
 /**
- * Standart JSON yanıt yardımcıları
+ * Standard JSON yanıt yardımcıları
  */
 
 function sendJSON(res, statusCode, data) {
