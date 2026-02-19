@@ -21,12 +21,33 @@ const ICONS = {
   check: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>`,
 };
 
-// ===== Sample Data =====
-const WORKSPACES = [
-  { id: "backend-production", name: "Backend Production", abbr: "BP", color: "indigo", status: "online", statusText: "Çevrimiçi", metric: "CPU Kullanımı", usage: 64, members: 11, avatarColors: ["#a5b4fc", "#86efac", "#fbbf24"] },
-  { id: "staging-env", name: "Staging Env", abbr: "ST", color: "amber", status: "online", statusText: "Çevrimiçi", metric: "Depolama Kullanımı", usage: 28, members: 3, avatarColors: ["#c4b5fd"] },
-  { id: "mobile-api", name: "Mobile API", abbr: "MA", color: "rose", status: "pending", statusText: "Beklemede", metric: "CPU Kullanımı", usage: 92, members: 6, avatarColors: ["#fca5a5", "#93c5fd"] },
-];
+// ===== Workspace verisi API'den çekilecek =====
+let WORKSPACES = [];
+
+// ===== API Helper =====
+async function apiFetch(url, options = {}) {
+  const token = Auth.getToken();
+  const headers = { ...options.headers };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (options.body && typeof options.body === "object") {
+    headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(options.body);
+  }
+  const res = await fetch(url, { ...options, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "İstek başarısız");
+  return data;
+}
+
+async function loadWorkspaces() {
+  try {
+    const data = await apiFetch("/api/workspaces");
+    WORKSPACES = data.workspaces || [];
+  } catch (err) {
+    console.error("Workspace yükleme hatası:", err);
+    WORKSPACES = [];
+  }
+}
 
 const SERVERS = [
   { id: 1, name: "Sunucu #1 — EU West", ip: "185.32.110.12", status: "Çevrimiçi", cpu: "24%", ram: "4.2 GB / 16 GB", uptime: "42 gün" },
@@ -76,6 +97,18 @@ function openModal(id) {
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.classList.add("hidden");
+}
+
+// ===== Join Key Modal (workspace oluşturulduktan sonra gösterilir) =====
+function showJoinKeyModal(workspaceName, joinKey) {
+  openModal("modal-join-key");
+  document.getElementById("join-key-ws-name").textContent = workspaceName;
+  document.getElementById("join-key-value").textContent = joinKey;
+  // Copy button
+  const copyBtn = document.getElementById("join-key-copy-btn");
+  if (copyBtn) {
+    copyBtn.onclick = () => copyJoinKey(joinKey);
+  }
 }
 
 function navigateTo(pageName) {
@@ -157,9 +190,10 @@ function renderWorkspaceCard(ws, showAdd) {
   `;
 }
 
-function renderDashboardWorkspaces() {
+async function renderDashboardWorkspaces() {
   const grid = document.getElementById("dashboard-workspaces");
   if (!grid) return;
+  await loadWorkspaces();
   grid.innerHTML = WORKSPACES.map((ws) => renderWorkspaceCard(ws)).join("") + `
     <div class="workspace-add" id="add-workspace-card">
       <span class="icon" data-icon="add_circle"></span>
@@ -169,9 +203,10 @@ function renderDashboardWorkspaces() {
   bindWorkspaceEvents(grid);
 }
 
-function renderAllWorkspaces() {
+async function renderAllWorkspaces() {
   const grid = document.getElementById("all-workspaces-grid");
   if (!grid) return;
+  await loadWorkspaces();
   grid.innerHTML = WORKSPACES.map((ws) => renderWorkspaceCard(ws)).join("") + `
     <div class="workspace-add" id="add-workspace-card-2">
       <span class="icon" data-icon="add_circle"></span>
@@ -232,6 +267,17 @@ function showWorkspaceDetail(wsId) {
   if (!ws) return;
   document.getElementById("detail-modal-title").textContent = ws.name;
   document.getElementById("detail-modal-body").innerHTML = `
+    ${ws.joinKey ? `<div class="join-key-section">
+      <div class="join-key-label">Katılım Anahtarı</div>
+      <div class="join-key-display">
+        <code class="join-key-code">${escapeHtml(ws.joinKey)}</code>
+        <button class="btn-copy" onclick="copyJoinKey('${escapeHtml(ws.joinKey)}')" title="Kopyala">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="18" height="18" fill="currentColor"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Z"/></svg>
+        </button>
+      </div>
+      <p class="join-key-hint">Bu anahtarı lokal uygulamadan bağlanmak için kullanın</p>
+      <button class="btn-secondary btn-sm" onclick="regenerateWorkspaceKey('${escapeHtml(ws.id)}')">Anahtarı Yenile</button>
+    </div>` : ""}
     <div class="detail-grid">
       <div class="detail-item">
         <div class="detail-label">Durum</div>
@@ -257,6 +303,14 @@ function showWorkspaceDetail(wsId) {
         <div class="detail-label">Açıklama</div>
         <div class="detail-value">${escapeHtml(ws.description)}</div>
       </div>` : ""}
+      ${ws.connectedClients && ws.connectedClients.length > 0 ? `<div class="detail-item detail-item-full">
+        <div class="detail-label">Bağlı İstemciler (${ws.connectedClients.length})</div>
+        <div class="detail-value">
+          <div class="connected-clients-list">
+            ${ws.connectedClients.map(c => `<div class="client-item"><span class="client-name">${escapeHtml(c.name)}</span><span class="client-host">${escapeHtml(c.hostname)}</span></div>`).join("")}
+          </div>
+        </div>
+      </div>` : ""}
     </div>
     <div style="margin-top: 20px;">
       <div class="progress-label">
@@ -271,12 +325,15 @@ function showWorkspaceDetail(wsId) {
   // Wire delete button
   document.getElementById("detail-delete-btn").onclick = () => {
     closeModal("modal-workspace-detail");
-    confirmAction(`"${ws.name}" çalışma alanını silmek istediğinize emin misiniz?`, () => {
-      const idx = WORKSPACES.findIndex((w) => w.id === wsId);
-      if (idx > -1) WORKSPACES.splice(idx, 1);
-      showToast(`"${ws.name}" silindi`, "info");
-      renderDashboardWorkspaces();
-      renderAllWorkspaces();
+    confirmAction(`"${ws.name}" çalışma alanını silmek istediğinize emin misiniz?`, async () => {
+      try {
+        await apiFetch(`/api/workspaces/${encodeURIComponent(wsId)}`, { method: "DELETE" });
+        showToast(`"${ws.name}" silindi`, "info");
+      } catch (err) {
+        showToast("Silme hatası: " + err.message, "error");
+      }
+      await renderDashboardWorkspaces();
+      await renderAllWorkspaces();
       injectIcons();
       animateProgressBars();
     });
@@ -284,6 +341,33 @@ function showWorkspaceDetail(wsId) {
   openModal("modal-workspace-detail");
   injectIcons();
   animateProgressBars();
+}
+
+// ===== Join Key Helpers =====
+function copyJoinKey(key) {
+  navigator.clipboard.writeText(key).then(() => {
+    showToast("Anahtar panoya kopyalandı!");
+  }).catch(() => {
+    // Fallback
+    const input = document.createElement("input");
+    input.value = key;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    document.body.removeChild(input);
+    showToast("Anahtar panoya kopyalandı!");
+  });
+}
+
+async function regenerateWorkspaceKey(wsId) {
+  try {
+    const data = await apiFetch(`/api/workspaces/${encodeURIComponent(wsId)}/regenerate-key`, { method: "POST" });
+    showToast("Yeni anahtar oluşturuldu: " + data.workspace.joinKey);
+    await loadWorkspaces();
+    showWorkspaceDetail(wsId);
+  } catch (err) {
+    showToast("Anahtar yenileme hatası: " + err.message, "error");
+  }
 }
 
 // ===== Confirm Modal =====
@@ -428,34 +512,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // ---- Submit new workspace ----
-  document.getElementById("ws-submit").addEventListener("click", () => {
+  document.getElementById("ws-submit").addEventListener("click", async () => {
     const name = document.getElementById("ws-name").value.trim();
     const server = document.getElementById("ws-server").value;
     if (!name) { showToast("Lütfen bir ad girin", "error"); return; }
     if (!server) { showToast("Lütfen bir sunucu seçin", "error"); return; }
 
-    const colors = ["indigo", "amber", "rose", "green", "blue"];
-    const abbr = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
     const description = document.getElementById("ws-desc").value.trim();
-    WORKSPACES.push({
-      id: name.toLowerCase().replace(/\s+/g, "-"),
-      name, abbr,
-      color: colors[WORKSPACES.length % colors.length],
-      status: "pending", statusText: "Beklemede",
-      metric: "CPU Kullanımı", usage: 0, members: 1,
-      avatarColors: ["#a5b4fc"],
-      server, description: description || "",
-    });
 
-    closeModal("modal-create-workspace");
-    document.getElementById("ws-name").value = "";
-    document.getElementById("ws-server").value = "";
-    document.getElementById("ws-desc").value = "";
-    showToast(`"${name}" oluşturuldu!`);
-    renderDashboardWorkspaces();
-    renderAllWorkspaces();
-    injectIcons();
-    animateProgressBars();
+    try {
+      const data = await apiFetch("/api/workspaces", {
+        method: "POST",
+        body: { name, server, description },
+      });
+
+      const ws = data.workspace;
+
+      closeModal("modal-create-workspace");
+      document.getElementById("ws-name").value = "";
+      document.getElementById("ws-server").value = "";
+      document.getElementById("ws-desc").value = "";
+
+      // Katılım anahtarını göster
+      showJoinKeyModal(ws.name, ws.joinKey);
+
+      await renderDashboardWorkspaces();
+      await renderAllWorkspaces();
+      injectIcons();
+      animateProgressBars();
+    } catch (err) {
+      showToast("Oluşturma hatası: " + err.message, "error");
+    }
   });
 
   // ---- Invite submit ----
@@ -503,12 +590,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("invite-modal-title").textContent = `"${ws.name}" — Üye Davet Et`;
         openModal("modal-invite");
       } else if (action === "delete") {
-        confirmAction(`"${ws.name}" çalışma alanını silmek istediğinize emin misiniz?`, () => {
-          const idx = WORKSPACES.findIndex((w) => w.id === wsId);
-          if (idx > -1) WORKSPACES.splice(idx, 1);
-          showToast(`"${ws.name}" silindi`, "info");
-          renderDashboardWorkspaces();
-          renderAllWorkspaces();
+        confirmAction(`"${ws.name}" çalışma alanını silmek istediğinize emin misiniz?`, async () => {
+          try {
+            await apiFetch(`/api/workspaces/${encodeURIComponent(wsId)}`, { method: "DELETE" });
+            showToast(`"${ws.name}" silindi`, "info");
+          } catch (err) {
+            showToast("Silme hatası: " + err.message, "error");
+          }
+          await renderDashboardWorkspaces();
+          await renderAllWorkspaces();
           injectIcons();
           animateProgressBars();
         });

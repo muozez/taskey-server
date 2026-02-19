@@ -3,6 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+// MVC Routes
+const { matchRoute } = require("./src/routes");
+const authMiddleware = require("./src/middleware/auth");
+
 const PORT = process.env.PORT || 3000;
 
 // ===== Simple user store =====
@@ -74,8 +78,23 @@ const MIME_TYPES = {
 
 const PUBLIC_ROOT = path.join(__dirname, "public");
 
+// Auth middleware'e session store'u paylaş
+authMiddleware.init(sessions);
+
 const server = http.createServer(async (req, res) => {
-  // ===== API Routes =====
+  // ===== MVC Routes (src/ altındaki route'lar) =====
+  const routeHandler = matchRoute(req);
+  if (routeHandler) {
+    try {
+      await routeHandler(req, res);
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, message: "Sunucu hatası" }));
+    }
+    return;
+  }
+
+  // ===== Legacy API Routes =====
   if (req.url === "/api/login" && req.method === "POST") {
     try {
       const { email, password } = await parseBody(req);

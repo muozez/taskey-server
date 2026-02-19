@@ -376,6 +376,36 @@
     </div>
   </div>
 
+  <!-- ===== MODAL: Katılım Anahtarı ===== -->
+  <div class="modal-overlay hidden" id="modal-join-key">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Katılım Anahtarı Oluşturuldu</h3>
+        <button class="modal-close" data-close-modal="modal-join-key" aria-label="Kapat">
+          <span class="icon" data-icon="close"></span>
+        </button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <p style="margin-bottom: 8px; color: var(--text-secondary);">
+          <strong id="join-key-ws-name"></strong> çalışma alanı başarıyla oluşturuldu.
+        </p>
+        <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 0.85rem;">
+          Lokal uygulamadan bağlanmak için bu anahtarı kullanın:
+        </p>
+        <div class="join-key-display join-key-display-lg">
+          <code class="join-key-code join-key-code-lg" id="join-key-value"></code>
+        </div>
+        <button class="btn-primary btn-sm" id="join-key-copy-btn" style="margin-top: 16px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="16" height="16" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Z"/></svg>
+          Anahtarı Kopyala
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close-modal="modal-join-key">Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Context Menu ===== -->
   <div class="context-menu hidden" id="context-menu">
     <button class="context-menu-item" data-action="detail">
