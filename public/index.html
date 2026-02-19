@@ -13,7 +13,13 @@
   <div class="app-layout">
 
     <!-- ===== Sidebar ===== -->
-    <aside class="sidebar">
+    <button class="hamburger-btn" id="hamburger-btn" aria-label="Menüyü aç">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+    <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
         <div class="sidebar-brand-icon">
           <span class="icon" data-icon="terminal"></span>
@@ -33,9 +39,9 @@
           <span class="icon" data-icon="layers"></span>
           <span>Çalışma Alanları</span>
         </a>
-        <a href="#" class="nav-item" data-page="servers">
-          <span class="icon" data-icon="dns"></span>
-          <span>Sunucular</span>
+        <a href="#" class="nav-item" data-page="users">
+          <span class="icon" data-icon="group"></span>
+          <span>Kullanıcılar</span>
         </a>
         <a href="#" class="nav-item" data-page="settings">
           <span class="icon" data-icon="settings"></span>
@@ -52,6 +58,11 @@
             <p class="name">Muhammet</p>
             <p class="role">Yönetici</p>
           </div>
+          <button class="logout-btn" id="logout-btn" aria-label="Çıkış yap" title="Çıkış Yap">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20" height="20" fill="currentColor">
+              <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z"/>
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
@@ -82,31 +93,31 @@
           <div class="stat-card">
             <div class="stat-card-header">
               <div class="stat-icon primary"><span class="icon" data-icon="folder"></span></div>
-              <span class="stat-badge">+2 bu hafta</span>
+              <span class="stat-badge" id="stat-badge-new"></span>
             </div>
-            <p class="stat-label">Aktif Çalışma Alanları</p>
-            <p class="stat-value">12</p>
+            <p class="stat-label">Toplam Çalışma Alanı</p>
+            <p class="stat-value" id="stat-total-workspaces">—</p>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
-              <div class="stat-icon default"><span class="icon" data-icon="storage"></span></div>
+              <div class="stat-icon default"><span class="icon" data-icon="layers"></span></div>
             </div>
-            <p class="stat-label">Toplam Sunucu</p>
-            <p class="stat-value">4</p>
+            <p class="stat-label">Çevrimiçi Alanlar</p>
+            <p class="stat-value" id="stat-online-workspaces">—</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-icon default"><span class="icon" data-icon="person"></span></div>
+            </div>
+            <p class="stat-label">Toplam Kullanıcı</p>
+            <p class="stat-value" id="stat-total-users">—</p>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
               <div class="stat-icon default"><span class="icon" data-icon="group"></span></div>
             </div>
-            <p class="stat-label">Bağlı Üyeler</p>
-            <p class="stat-value">28</p>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-header">
-              <div class="stat-icon default"><span class="icon" data-icon="mail"></span></div>
-            </div>
-            <p class="stat-label">Bekleyen Davetler</p>
-            <p class="stat-value">5</p>
+            <p class="stat-label">Bağlı İstemciler</p>
+            <p class="stat-value" id="stat-total-clients">—</p>
           </div>
         </section>
 
@@ -125,48 +136,11 @@
             <div class="section-header">
               <h3>Son Aktiviteler</h3>
             </div>
-            <div class="activities-card">
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon update"><span class="icon" data-icon="update"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Muhammet Sunucu #4'ü güncelledi</p>
-                    <p class="activity-desc">Staging için SSL sertifikaları yapılandırıldı.</p>
-                    <p class="activity-time">2 dakika önce</p>
-                  </div>
-                </div>
+            <div class="activities-card" id="activities-card">
+              <div id="activities-list">
+                <p class="text-muted" style="text-align:center;padding:32px 0;">Yükleniyor...</p>
               </div>
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon member"><span class="icon" data-icon="person_add"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Yeni üye 'Pazarlama' alanına katıldı</p>
-                    <p class="activity-desc">Selin G. çalışma alanına eklendi.</p>
-                    <p class="activity-time">45 dakika önce</p>
-                  </div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon deploy"><span class="icon" data-icon="rocket_launch"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Dağıtım başarılı: 'API'</p>
-                    <p class="activity-desc">v2.4.0 başarıyla production'a gönderildi.</p>
-                    <p class="activity-time">3 saat önce</p>
-                  </div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-content">
-                  <div class="activity-icon alert"><span class="icon" data-icon="warning"></span></div>
-                  <div class="activity-details">
-                    <p class="activity-title">Yüksek Bellek Uyarısı</p>
-                    <p class="activity-desc">Mobile API %90 kullanım eşiğine ulaştı.</p>
-                    <p class="activity-time">5 saat önce</p>
-                  </div>
-                </div>
-              </div>
-              <button class="load-more-btn" id="load-more-activities">DAHA FAZLA AKTİVİTE YÜKLE</button>
+              <button class="load-more-btn hidden" id="load-more-activities">DAHA FAZLA AKTİVİTE YÜKLE</button>
             </div>
           </div>
         </div>
@@ -189,15 +163,60 @@
         <div class="workspaces-grid workspaces-grid-full" id="all-workspaces-grid"></div>
       </div>
 
-      <!-- ========== SAYFA: Sunucular ========== -->
-      <div class="page hidden" id="page-servers">
+      <!-- ========== SAYFA: Kullanıcılar ========== -->
+      <div class="page hidden" id="page-users">
         <header class="page-header">
           <div>
-            <h2>Sunucular</h2>
-            <p class="subtitle">Bağlı sunucularınızı izleyin</p>
+            <h2>Kullanıcılar</h2>
+            <p class="subtitle">Sistem kullanıcılarını yönetin</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn-primary" id="create-user-btn">
+              <span class="icon" data-icon="person_add"></span>
+              Yeni Kullanıcı
+            </button>
           </div>
         </header>
-        <div class="servers-grid" id="servers-grid"></div>
+        <div class="users-grid" id="users-grid">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+
+      <!-- ===== MODAL: Yeni Kullanıcı ===== -->
+      <div class="modal-overlay hidden" id="modal-create-user">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>Yeni Kullanıcı Oluştur</h3>
+            <button class="modal-close" data-close-modal="modal-create-user" aria-label="Kapat">
+              <span class="icon" data-icon="close"></span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Ad Soyad</label>
+              <input type="text" id="user-name" placeholder="Örn: Ahmet Yılmaz" />
+            </div>
+            <div class="form-group">
+              <label>E-posta</label>
+              <input type="email" id="user-email" placeholder="ornek@email.com" />
+            </div>
+            <div class="form-group">
+              <label>Şifre</label>
+              <input type="password" id="user-password" placeholder="En az 6 karakter" />
+            </div>
+            <div class="form-group">
+              <label>Rol</label>
+              <select id="user-role">
+                <option value="Üye">Üye</option>
+                <option value="Yönetici">Yönetici</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" data-close-modal="modal-create-user">İptal</button>
+            <button class="btn-primary" id="user-submit">Oluştur</button>
+          </div>
+        </div>
       </div>
 
       <!-- ========== SAYFA: Ayarlar ========== -->
@@ -267,7 +286,7 @@
     <div class="modal">
       <div class="modal-header">
         <h3>Yeni Çalışma Alanı Oluştur</h3>
-        <button class="modal-close" data-close-modal="modal-create-workspace">
+        <button class="modal-close" data-close-modal="modal-create-workspace" aria-label="Kapat">
           <span class="icon" data-icon="close"></span>
         </button>
       </div>
@@ -275,16 +294,6 @@
         <div class="form-group">
           <label>Çalışma Alanı Adı</label>
           <input type="text" id="ws-name" placeholder="Örn: Backend Production" />
-        </div>
-        <div class="form-group">
-          <label>Sunucu</label>
-          <select id="ws-server">
-            <option value="">Sunucu seçin...</option>
-            <option>Sunucu #1 — EU West</option>
-            <option>Sunucu #2 — US East</option>
-            <option>Sunucu #3 — Asia</option>
-            <option>Sunucu #4 — EU Central</option>
-          </select>
         </div>
         <div class="form-group">
           <label>Açıklama (isteğe bağlı)</label>
@@ -298,43 +307,12 @@
     </div>
   </div>
 
-  <!-- ===== MODAL: Davet Gönder ===== -->
-  <div class="modal-overlay hidden" id="modal-invite">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="invite-modal-title">Üye Davet Et</h3>
-        <button class="modal-close" data-close-modal="modal-invite">
-          <span class="icon" data-icon="close"></span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>E-posta Adresi</label>
-          <input type="email" id="invite-email" placeholder="ornek@domain.com" />
-        </div>
-        <div class="form-group">
-          <label>Rol</label>
-          <select id="invite-role">
-            <option>Görüntüleyici</option>
-            <option>Düzenleyici</option>
-            <option selected>Üye</option>
-            <option>Yönetici</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" data-close-modal="modal-invite">İptal</button>
-        <button class="btn-primary" id="invite-submit">Davet Gönder</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ===== MODAL: Workspace Detay ===== -->
   <div class="modal-overlay hidden" id="modal-workspace-detail">
     <div class="modal modal-lg">
       <div class="modal-header">
         <h3 id="detail-modal-title">Çalışma Alanı Detayı</h3>
-        <button class="modal-close" data-close-modal="modal-workspace-detail">
+        <button class="modal-close" data-close-modal="modal-workspace-detail" aria-label="Kapat">
           <span class="icon" data-icon="close"></span>
         </button>
       </div>
@@ -351,7 +329,7 @@
     <div class="modal modal-sm">
       <div class="modal-header">
         <h3 id="confirm-title">Onay</h3>
-        <button class="modal-close" data-close-modal="modal-confirm">
+        <button class="modal-close" data-close-modal="modal-confirm" aria-label="Kapat">
           <span class="icon" data-icon="close"></span>
         </button>
       </div>
@@ -361,6 +339,36 @@
       <div class="modal-footer">
         <button class="btn-secondary" data-close-modal="modal-confirm">Vazgeç</button>
         <button class="btn-danger" id="confirm-ok">Onayla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: Katılım Anahtarı ===== -->
+  <div class="modal-overlay hidden" id="modal-join-key">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Katılım Anahtarı Oluşturuldu</h3>
+        <button class="modal-close" data-close-modal="modal-join-key" aria-label="Kapat">
+          <span class="icon" data-icon="close"></span>
+        </button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <p style="margin-bottom: 8px; color: var(--text-secondary);">
+          <strong id="join-key-ws-name"></strong> çalışma alanı başarıyla oluşturuldu.
+        </p>
+        <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 0.85rem;">
+          Lokal uygulamadan bağlanmak için bu anahtarı kullanın:
+        </p>
+        <div class="join-key-display join-key-display-lg">
+          <code class="join-key-code join-key-code-lg" id="join-key-value"></code>
+        </div>
+        <button class="btn-primary btn-sm" id="join-key-copy-btn" style="margin-top: 16px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="16" height="16" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Z"/></svg>
+          Anahtarı Kopyala
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close-modal="modal-join-key">Kapat</button>
       </div>
     </div>
   </div>
@@ -385,6 +393,73 @@
   <!-- ===== Toast ===== -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- ===== Onboarding Overlay ===== -->
+  <div class="onboarding-overlay hidden" id="onboarding-overlay">
+    <div class="onboarding-card">
+      <div class="onboarding-header">
+        <div class="onboarding-steps-indicator">
+          <span class="onboarding-dot active" data-step="0"></span>
+          <span class="onboarding-dot" data-step="1"></span>
+          <span class="onboarding-dot" data-step="2"></span>
+          <span class="onboarding-dot" data-step="3"></span>
+        </div>
+        <button class="onboarding-skip" id="onboarding-skip">Atla</button>
+      </div>
+
+      <div class="onboarding-body">
+        <!-- Slide 0: Welcome -->
+        <div class="onboarding-slide active" data-slide="0">
+          <div class="onboarding-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="48" height="48" fill="currentColor">
+              <path d="m226-559 78 78q12 12 12 28.5T304-424q-12 12-28.5 12T247-424L141-530q-12-12-12-28.5t12-28.5l106-106q12-12 28.5-12t28.5 12q12 12 12 28.5T304-636l-78 77Zm254 239q-17 0-28.5-11.5T440-360q0-17 11.5-28.5T480-400h280q17 0 28.5 11.5T800-360q0 17-11.5 28.5T760-320H480Z"/>
+            </svg>
+          </div>
+          <h2>Taskey'e Hoş Geldiniz!</h2>
+          <p>Çalışma alanlarınızı kolayca yönetin, ekibinizi organize edin ve projelerinizi tek bir merkezden kontrol edin.</p>
+        </div>
+
+        <!-- Slide 1: Workspaces -->
+        <div class="onboarding-slide" data-slide="1">
+          <div class="onboarding-icon workspace-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="48" height="48" fill="currentColor">
+              <path d="M480-118q-12 0-23-3.5T436-131L140-282q-15-8-22.5-22t-7.5-30q0-16 7.5-30t22.5-22l72-38-72-38q-15-8-22.5-22t-7.5-30q0-16 7.5-30t22.5-22l296-151q10-6 21-9t23-3q12 0 23 3t21 9l296 151q15 8 22.5 22t7.5 30q0 16-7.5 30T817-462l-72 38 72 38q15 8 22.5 22t7.5 30q0 16-7.5 30T817-282L521-131q-10 6-21 9.5t-20 3.5Z"/>
+            </svg>
+          </div>
+          <h2>Çalışma Alanları</h2>
+          <p>Her proje için ayrı bir <strong>Çalışma Alanı</strong> oluşturun. Her alan kendi katılım anahtarına sahiptir — lokal uygulamadan bu anahtar ile bağlanabilirsiniz.</p>
+        </div>
+
+        <!-- Slide 2: Sync -->
+        <div class="onboarding-slide" data-slide="2">
+          <div class="onboarding-icon sync-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="48" height="48" fill="currentColor">
+              <path d="M160-160v-80h110l-16-14q-52-46-73-105t-21-119q0-111 66.5-197.5T400-790v84q-72 26-116 88.5T240-478q0 45 17 87.5t53 78.5l10 10v-98h80v240H160Zm400-10v-84q72-26 116-88.5T720-482q0-45-17-87.5T650-648l-10-10v98h-80v-240h240v80H690l16 14q49 49 71.5 106.5T800-482q0 111-66.5 197.5T560-170Z"/>
+            </svg>
+          </div>
+          <h2>Gerçek Zamanlı Senkronizasyon</h2>
+          <p>Ekip üyelerinizin değişiklikleri <strong>anlık olarak</strong> senkronize edilir. Çakışma olmadan, sorunsuz bir şekilde birlikte çalışın.</p>
+        </div>
+
+        <!-- Slide 3: Get Started -->
+        <div class="onboarding-slide" data-slide="3">
+          <div class="onboarding-icon start-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="48" height="48" fill="currentColor">
+              <path d="M226-346q-17-52-25.5-106T192-560q0-155 72.5-292T480-960q143 71 215.5 208T768-460q0 54-8.5 108T734-246l-62-62q12-40 18-82t6-70q0-130-57.5-247.5T480-860Q375-766 317.5-648.5T260-460q0 28 6 70t18 82l-58 62ZM480-200q-51 0-96.5-17.5T300-266l44-44q26 20 60 31t76 11q42 0 76-11t60-31l44 44q-38 31-83.5 48.5T480-200Zm0-200q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Z"/>
+            </svg>
+          </div>
+          <h2>Başlamaya Hazırsınız!</h2>
+          <p>İlk çalışma alanınızı oluşturarak başlayın. Sol menüden <strong>"Yeni Çalışma Alanı"</strong> butonuna tıklayın.</p>
+        </div>
+      </div>
+
+      <div class="onboarding-footer">
+        <button class="onboarding-btn secondary hidden" id="onboarding-prev">Geri</button>
+        <button class="onboarding-btn primary" id="onboarding-next">Devam</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>
