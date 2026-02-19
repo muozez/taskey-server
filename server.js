@@ -3,16 +3,17 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+// ===== Database & ORM =====
+const { initDatabase } = require("./src/config/database");
+const { seedDatabase } = require("./src/config/seed");
+// Modelleri ve ilişkileri yükle (sync öncesi gerekli)
+const { User } = require("./src/models/index");
+
 // MVC Routes
 const { matchRoute } = require("./src/routes");
 const authMiddleware = require("./src/middleware/auth");
 
 const PORT = process.env.PORT || 3000;
-
-// ===== Simple user store =====
-const USERS = [
-  { email: "admin@taskey.com", password: "123456", name: "Muhammet", role: "Yönetici" },
-];
 
 // ===== Session store (in-memory) =====
 const sessions = new Map();
@@ -46,12 +47,10 @@ function parseBody(req) {
 
 // ===== Extract token from cookie or Authorization header =====
 function extractToken(req) {
-  // Check Authorization header
   const auth = req.headers["authorization"];
   if (auth && auth.startsWith("Bearer ")) {
     return auth.slice(7);
   }
-  // Check cookies
   const cookie = req.headers["cookie"];
   if (cookie) {
     const match = cookie.split(";").map(c => c.trim()).find(c => c.startsWith("taskey_token="));
@@ -88,17 +87,18 @@ const server = http.createServer(async (req, res) => {
     try {
       await routeHandler(req, res);
     } catch (err) {
+      console.error("[Server] Route hatası:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ success: false, message: "Sunucu hatası" }));
     }
     return;
   }
 
-  // ===== Legacy API Routes =====
+  // ===== Auth API Routes (DB-backed) =====
   if (req.url === "/api/login" && req.method === "POST") {
     try {
       const { email, password } = await parseBody(req);
-      const user = USERS.find(u => u.email === email && u.password === password);
+      const user = await User.findOne({ where: { email, password } });
       if (!user) {
         res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Geçersiz e-posta veya şifre" }));
@@ -107,7 +107,8 @@ const server = http.createServer(async (req, res) => {
       const token = createSession(user);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ token, user: { name: user.name, email: user.email, role: user.role } }));
-    } catch {
+    } catch (err) {
+      console.error("[Auth] Login hatası:", err);
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Geçersiz istek" }));
     }
@@ -135,7 +136,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Parse the URL to strip query strings and decode
+  // ===== Static file serving =====
   let parsedUrl;
   try {
     parsedUrl = new URL(req.url, `http://localhost:${PORT}`);
@@ -148,9 +149,6 @@ const server = http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(parsedUrl.pathname);
   const safePath = pathname === "/" || pathname === "/index.html" ? "index.html" : pathname.replace(/^\//, "");
 
-  // Auth check is handled client-side via auth.js
-
-  // Resolve and check for path traversal
   const filePath = path.resolve(PUBLIC_ROOT, safePath);
   if (!filePath.startsWith(PUBLIC_ROOT + path.sep) && filePath !== PUBLIC_ROOT) {
     res.writeHead(403, { "Content-Type": "text/html" });
@@ -177,6 +175,18 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Taskey running at http://localhost:${PORT}`);
-});
+// ===== Bootstrap: DB → Seed → Listen =====
+(async () => {
+  try {
+    await initDatabase();
+    await seedDatabase();
+
+    server.listen(PORT, () => {
+      console.log(`Taskey running at http://localhost:${PORT}`);
+      console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
+    });
+  } catch (err) {
+    console.error("[Boot] Sunucu başlatılamadı:", err);
+    process.exit(1);
+  }
+})();

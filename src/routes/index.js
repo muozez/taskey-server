@@ -1,4 +1,6 @@
 const workspaceRoutes = require("./workspaceRoutes");
+const syncRoutes = require("./syncRoutes");
+const swaggerRoutes = require("./swaggerRoutes");
 
 /**
  * Tüm route modüllerini birleştirir.
@@ -7,7 +9,9 @@ const workspaceRoutes = require("./workspaceRoutes");
  * @returns {Function|null} Eşleşen handler veya null
  */
 const routers = [
+  swaggerRoutes,
   workspaceRoutes,
+  syncRoutes,
 ];
 
 function matchRoute(req) {

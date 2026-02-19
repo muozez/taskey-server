@@ -1,0 +1,497 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Taskey Remote Server API",
+    "description": "Taskey uzak sunucu API'si. Lokal node'lar SQLite ile çalışır, remote server PostgreSQL kullanır. Diff tabanlı senkronizasyon ile offline-first mimari desteklenir.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Taskey",
+      "url": "https://github.com/muozez/taskey-server"
+    }
+  },
+  "servers": [
+    { "url": "http://localhost:3000", "description": "Geliştirme sunucusu" }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Kimlik doğrulama işlemleri" },
+    { "name": "Workspaces", "description": "Çalışma alanı yönetimi (Auth gerekli)" },
+    { "name": "Join", "description": "Lokal client katılım (Public)" },
+    { "name": "Sync", "description": "Diff tabanlı senkronizasyon" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "POST /api/login ile alınan token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "admin@taskey.com" },
+          "password": { "type": "string", "example": "123456" }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "user": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "email": { "type": "string" },
+              "role": { "type": "string" }
+            }
+          }
+        }
+      },
+      "Workspace": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "abbr": { "type": "string" },
+          "color": { "type": "string" },
+          "status": { "type": "string", "enum": ["online", "offline", "pending"] },
+          "statusText": { "type": "string" },
+          "server": { "type": "string" },
+          "description": { "type": "string" },
+          "joinKey": { "type": "string", "pattern": "^[A-Z2-9]{4}-[A-Z2-9]{4}$", "example": "ABCD-EF23" },
+          "currentVersion": { "type": "integer" },
+          "members": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "connectedClients": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ConnectedClient" }
+          }
+        }
+      },
+      "CreateWorkspaceRequest": {
+        "type": "object",
+        "required": ["name", "server"],
+        "properties": {
+          "name": { "type": "string", "example": "Backend Production" },
+          "server": { "type": "string", "example": "Sunucu #1 — EU West" },
+          "description": { "type": "string", "example": "Production backend ortamı" }
+        }
+      },
+      "ConnectedClient": {
+        "type": "object",
+        "properties": {
+          "clientId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "hostname": { "type": "string" },
+          "isOnline": { "type": "boolean" },
+          "lastSyncedVersion": { "type": "integer" },
+          "lastSeenAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "JoinRequest": {
+        "type": "object",
+        "required": ["joinKey"],
+        "properties": {
+          "joinKey": { "type": "string", "pattern": "^[A-Z2-9]{4}-[A-Z2-9]{4}$", "example": "ABCD-EF23" },
+          "clientName": { "type": "string", "example": "Muhammet-PC" },
+          "hostname": { "type": "string", "example": "192.168.1.10" }
+        }
+      },
+      "ValidateKeyRequest": {
+        "type": "object",
+        "required": ["joinKey"],
+        "properties": {
+          "joinKey": { "type": "string", "example": "ABCD-EF23" }
+        }
+      },
+      "DiffData": {
+        "type": "object",
+        "description": "Tek bir değişiklik kaydı",
+        "required": ["entity", "entityId", "action"],
+        "properties": {
+          "entity": { "type": "string", "enum": ["task", "project", "column", "label", "comment"], "example": "task" },
+          "entityId": { "type": "string", "format": "uuid" },
+          "action": { "type": "string", "enum": ["create", "update", "delete"] },
+          "field": { "type": "string", "nullable": true, "example": "title", "description": "Güncellenen alan (create/delete için null)" },
+          "oldValue": { "description": "Önceki değer" },
+          "newValue": { "description": "Yeni değer" }
+        }
+      },
+      "PushRequest": {
+        "type": "object",
+        "required": ["clientId", "diffs"],
+        "properties": {
+          "clientId": { "type": "string", "format": "uuid" },
+          "diffs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["data", "clientTimestamp"],
+              "properties": {
+                "baseVersion": { "type": "integer", "description": "Client'ın bu diff'i oluşturduğu andaki versiyon" },
+                "data": { "$ref": "#/components/schemas/DiffData" },
+                "clientTimestamp": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        }
+      },
+      "PushResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "accepted": { "type": "integer" },
+          "conflicts": { "type": "integer" },
+          "conflictDetails": { "type": "array", "items": { "type": "object" } },
+          "currentVersion": { "type": "integer" }
+        }
+      },
+      "PullResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "upToDate": { "type": "boolean" },
+          "currentVersion": { "type": "integer" },
+          "fromVersion": { "type": "integer" },
+          "diffs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "data": { "$ref": "#/components/schemas/DiffData" },
+                "appliedVersion": { "type": "integer" },
+                "clientTimestamp": { "type": "string", "format": "date-time" },
+                "serverTimestamp": { "type": "string", "format": "date-time" }
+              }
+            }
+          },
+          "snapshot": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "version": { "type": "integer" },
+              "data": { "type": "object" },
+              "createdAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "HeartbeatRequest": {
+        "type": "object",
+        "required": ["clientId"],
+        "properties": {
+          "clientId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "ResolveRequest": {
+        "type": "object",
+        "required": ["diffId", "resolution"],
+        "properties": {
+          "diffId": { "type": "string", "format": "uuid" },
+          "resolution": { "type": "string", "enum": ["accept", "reject"] }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Giriş yap",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Başarılı giriş",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/LoginResponse" } }
+            }
+          },
+          "401": {
+            "description": "Geçersiz kimlik bilgileri",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Çıkış yap",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Başarılı çıkış" }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Mevcut kullanıcı bilgisi",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Kullanıcı bilgisi" },
+          "401": { "description": "Oturum bulunamadı" }
+        }
+      }
+    },
+    "/api/workspaces": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "Tüm workspace'leri listele",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Workspace listesi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "workspaces": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Workspace" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Yetkisiz erişim" }
+        }
+      },
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Yeni workspace oluştur (join key otomatik üretilir)",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateWorkspaceRequest" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Workspace oluşturuldu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "workspace": { "$ref": "#/components/schemas/Workspace" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Geçersiz istek" },
+          "401": { "description": "Yetkisiz erişim" }
+        }
+      }
+    },
+    "/api/workspaces/{id}": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "Workspace detayı",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Workspace detayı" },
+          "404": { "description": "Bulunamadı" }
+        }
+      },
+      "delete": {
+        "tags": ["Workspaces"],
+        "summary": "Workspace sil",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Silindi" },
+          "404": { "description": "Bulunamadı" }
+        }
+      }
+    },
+    "/api/workspaces/{id}/regenerate-key": {
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Join key yenile (XXXX-YYYY)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Yeni key üretildi" },
+          "404": { "description": "Bulunamadı" }
+        }
+      }
+    },
+    "/api/join": {
+      "post": {
+        "tags": ["Join"],
+        "summary": "Lokal client join key ile workspace'e katılır",
+        "description": "Auth gerektirmez. Lokal uygulama bu endpoint ile remote server'a bağlanır.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/JoinRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Başarıyla katıldı — clientId ve currentVersion döner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "workspace": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "name": { "type": "string" },
+                        "status": { "type": "string" },
+                        "currentVersion": { "type": "integer" }
+                      }
+                    },
+                    "client": { "$ref": "#/components/schemas/ConnectedClient" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Geçersiz anahtar formatı" },
+          "404": { "description": "Anahtar bulunamadı" }
+        }
+      }
+    },
+    "/api/validate-key": {
+      "post": {
+        "tags": ["Join"],
+        "summary": "Join key doğrula (bağlanmadan kontrol)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ValidateKeyRequest" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "Key geçerlilik durumu" }
+        }
+      }
+    },
+    "/api/sync/push": {
+      "post": {
+        "tags": ["Sync"],
+        "summary": "Diff'leri sunucuya gönder",
+        "description": "Lokal client (SQLite) değişikliklerini diff olarak gönderir. Offline iken biriken diff'ler toplu gönderilebilir. Sunucu conflict detection yapar ve reconcile eder.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PushRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Push sonucu",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PushResponse" } }
+            }
+          },
+          "400": { "description": "Geçersiz istek" },
+          "404": { "description": "Client bulunamadı" }
+        }
+      }
+    },
+    "/api/sync/pull": {
+      "get": {
+        "tags": ["Sync"],
+        "summary": "Son değişiklikleri çek",
+        "description": "Client son bildiği versiyondan bu yana olan diff'leri ve son snapshot'ı çeker. Nihai versiyonu lokale uygular.",
+        "parameters": [
+          { "name": "clientId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "sinceVersion", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "Bu versiyondan sonraki değişiklikler (varsayılan: client'ın last_synced_version'ı)" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Güncel değişiklikler ve snapshot",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PullResponse" } }
+            }
+          },
+          "404": { "description": "Client bulunamadı" }
+        }
+      }
+    },
+    "/api/sync/heartbeat": {
+      "post": {
+        "tags": ["Sync"],
+        "summary": "Online durumu bildir",
+        "description": "Client periyodik olarak heartbeat gönderir. Sunucu pending update olup olmadığını bildirir.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/HeartbeatRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Heartbeat yanıtı — hasPendingUpdates ile client'a pull yapması gerektiği söylenir"
+          }
+        }
+      }
+    },
+    "/api/sync/status": {
+      "get": {
+        "tags": ["Sync"],
+        "summary": "Workspace sync durumu (Dashboard)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "workspaceId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Sync durumu — pending diff sayıları, client durumları" },
+          "401": { "description": "Yetkisiz" }
+        }
+      }
+    },
+    "/api/sync/resolve": {
+      "post": {
+        "tags": ["Sync"],
+        "summary": "Conflict olan diff'i çöz (Dashboard)",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ResolveRequest" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "Conflict çözüldü" },
+          "400": { "description": "Geçersiz istek" }
+        }
+      }
+    }
+  }
+}
