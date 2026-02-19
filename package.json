@@ -1,0 +1,24 @@
+{
+  "name": "taskey-server",
+  "version": "1.0.0",
+  "description": "Taskey remote server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muozez/taskey-server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/muozez/taskey-server/issues"
+  },
+  "homepage": "https://github.com/muozez/taskey-server#readme",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
