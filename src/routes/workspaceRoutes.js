@@ -32,6 +32,14 @@ function match(req) {
 
   // === Protected routes ===
 
+  // GET /api/stats — Dashboard istatistikleri
+  if (url === "/api/stats" && method === "GET") {
+    return (req, res) => {
+      if (!requireAuth(req, res)) return;
+      workspaceController.stats(req, res);
+    };
+  }
+
   // POST /api/workspaces — Oluştur
   if (url === "/api/workspaces" && method === "POST") {
     return (req, res) => {

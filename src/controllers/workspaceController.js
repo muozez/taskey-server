@@ -232,6 +232,46 @@ async function _findUserIdByEmail(email) {
   return user ? user.id : null;
 }
 
+// GET /api/stats — Dashboard istatistikleri
+async function stats(req, res) {
+  try {
+    const { Workspace, WorkspaceClient } = require("../models/index");
+    const { Op } = require("sequelize");
+
+    const totalWorkspaces = await Workspace.count();
+    const onlineWorkspaces = await Workspace.count({ where: { status: "online" } });
+    const totalClients = await WorkspaceClient.count();
+    const onlineClients = await WorkspaceClient.count({ where: { is_online: true } });
+
+    // Bu hafta oluşturulan workspace sayısı
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const newThisWeek = await Workspace.count({
+      where: { created_at: { [Op.gte]: oneWeekAgo } },
+    });
+
+    // Benzersiz sunucu sayısı
+    const servers = await Workspace.findAll({
+      attributes: ["server"],
+      group: ["server"],
+      where: { server: { [Op.ne]: null, [Op.ne]: "" } },
+    });
+
+    sendSuccess(res, {
+      stats: {
+        totalWorkspaces,
+        onlineWorkspaces,
+        totalClients,
+        onlineClients,
+        newThisWeek,
+        uniqueServers: servers.length,
+      },
+    });
+  } catch (err) {
+    sendError(res, 500, "İstatistik alınamadı: " + err.message);
+  }
+}
+
 module.exports = {
   list,
   getById,
@@ -240,4 +280,5 @@ module.exports = {
   regenerateKey,
   join,
   validateKey,
+  stats,
 };

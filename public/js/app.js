@@ -49,6 +49,30 @@ async function loadWorkspaces() {
   }
 }
 
+// ===== Dashboard Stats =====
+async function loadStats() {
+  try {
+    const data = await apiFetch("/api/stats");
+    const s = data.stats;
+    const el = (id) => document.getElementById(id);
+    if (el("stat-total-workspaces")) el("stat-total-workspaces").textContent = s.totalWorkspaces;
+    if (el("stat-online-workspaces")) el("stat-online-workspaces").textContent = s.onlineWorkspaces;
+    if (el("stat-unique-servers")) el("stat-unique-servers").textContent = s.uniqueServers;
+    if (el("stat-total-clients")) el("stat-total-clients").textContent = s.totalClients;
+    const badge = el("stat-badge-new");
+    if (badge) {
+      if (s.newThisWeek > 0) {
+        badge.textContent = `+${s.newThisWeek} bu hafta`;
+        badge.style.display = "";
+      } else {
+        badge.style.display = "none";
+      }
+    }
+  } catch (err) {
+    console.error("Stats yükleme hatası:", err);
+  }
+}
+
 const SERVERS = [
   { id: 1, name: "Sunucu #1 — EU West", ip: "185.32.110.12", status: "Çevrimiçi", cpu: "24%", ram: "4.2 GB / 16 GB", uptime: "42 gün" },
   { id: 2, name: "Sunucu #2 — US East", ip: "104.21.55.78", status: "Çevrimiçi", cpu: "51%", ram: "11.3 GB / 32 GB", uptime: "18 gün" },
@@ -149,6 +173,23 @@ function animateProgressBars() {
   });
 }
 
+// ===== Invite via Mail =====
+function openInviteMail(wsName, joinKey, email) {
+  const subject = encodeURIComponent(`Taskey — "${wsName}" Çalışma Alanına Davet`);
+  const body = encodeURIComponent(
+    `Merhaba,\n\n` +
+    `"${wsName}" çalışma alanına katılmanız için davet edildiniz.\n\n` +
+    `Katılım Anahtarı: ${joinKey}\n\n` +
+    `Nasıl Bağlanılır:\n` +
+    `1. Taskey uygulamasını açın\n` +
+    `2. "Çalışma Alanına Katıl" seçeneğini seçin\n` +
+    `3. Yukarıdaki katılım anahtarını girin\n\n` +
+    `İyi çalışmalar!`
+  );
+  const mailto = `mailto:${encodeURIComponent(email || "")}?subject=${subject}&body=${body}`;
+  window.open(mailto, "_blank");
+}
+
 // ===== Workspace Card Renderer =====
 function renderWorkspaceCard(ws, showAdd) {
   const extraCount = Math.max(0, ws.members - ws.avatarColors.length);
@@ -184,7 +225,7 @@ function renderWorkspaceCard(ws, showAdd) {
           ${ws.avatarColors.map((c, i) => `<div class="avatar" style="background-color: ${escapeHtml(c)};${i === 0 ? ' margin-left: 0;' : ''}"></div>`).join("")}
           ${extraCount > 0 ? `<div class="avatar-count">+${extraCount}</div>` : ""}
         </div>
-        <button class="btn-invite" data-invite="${escapeHtml(ws.name)}">Davet Et</button>
+        <button class="btn-invite" data-invite-id="${escapeHtml(ws.id)}">Davet Et</button>
       </div>
     </div>
   `;
@@ -194,6 +235,7 @@ async function renderDashboardWorkspaces() {
   const grid = document.getElementById("dashboard-workspaces");
   if (!grid) return;
   await loadWorkspaces();
+  await loadStats();
   grid.innerHTML = WORKSPACES.map((ws) => renderWorkspaceCard(ws)).join("") + `
     <div class="workspace-add" id="add-workspace-card">
       <span class="icon" data-icon="add_circle"></span>
@@ -388,13 +430,14 @@ function bindWorkspaceEvents(container) {
       showContextMenu(rect.right, rect.bottom, btn.getAttribute("data-ws-menu"));
     });
   });
-  // Invite buttons
-  container.querySelectorAll("[data-invite]").forEach((btn) => {
+  // Invite buttons → mailto
+  container.querySelectorAll("[data-invite-id]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const wsName = btn.getAttribute("data-invite");
-      document.getElementById("invite-modal-title").textContent = `"${wsName}" — Üye Davet Et`;
-      openModal("modal-invite");
+      const wsId = btn.getAttribute("data-invite-id");
+      const ws = WORKSPACES.find((w) => w.id === wsId);
+      if (!ws) return;
+      openInviteMail(ws.name, ws.joinKey, "");
     });
   });
   // Workspace card click → detail
@@ -552,14 +595,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // ---- Invite submit ----
-  document.getElementById("invite-submit").addEventListener("click", () => {
-    const email = document.getElementById("invite-email").value.trim();
-    if (!email) { showToast("Lütfen bir e-posta adresi girin", "error"); return; }
-    closeModal("modal-invite");
-    document.getElementById("invite-email").value = "";
-    showToast(`${email} adresine davet gönderildi!`);
-  });
+  // ---- Invite submit (unused — now mailto based) ----
+  // Invite is handled via openInviteMail() from workspace cards/context menu
 
   // ---- Confirm modal OK button ----
   document.getElementById("confirm-ok").addEventListener("click", () => {
@@ -594,8 +631,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (action === "detail") {
         showWorkspaceDetail(wsId);
       } else if (action === "invite") {
-        document.getElementById("invite-modal-title").textContent = `"${ws.name}" — Üye Davet Et`;
-        openModal("modal-invite");
+        openInviteMail(ws.name, ws.joinKey, "");
       } else if (action === "delete") {
         confirmAction(`"${ws.name}" çalışma alanını silmek istediğinize emin misiniz?`, async () => {
           try {

@@ -93,31 +93,31 @@
           <div class="stat-card">
             <div class="stat-card-header">
               <div class="stat-icon primary"><span class="icon" data-icon="folder"></span></div>
-              <span class="stat-badge">+2 bu hafta</span>
+              <span class="stat-badge" id="stat-badge-new"></span>
             </div>
-            <p class="stat-label">Aktif Çalışma Alanları</p>
-            <p class="stat-value">12</p>
+            <p class="stat-label">Toplam Çalışma Alanı</p>
+            <p class="stat-value" id="stat-total-workspaces">—</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-icon default"><span class="icon" data-icon="layers"></span></div>
+            </div>
+            <p class="stat-label">Çevrimiçi Alanlar</p>
+            <p class="stat-value" id="stat-online-workspaces">—</p>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
               <div class="stat-icon default"><span class="icon" data-icon="storage"></span></div>
             </div>
-            <p class="stat-label">Toplam Sunucu</p>
-            <p class="stat-value">4</p>
+            <p class="stat-label">Benzersiz Sunucu</p>
+            <p class="stat-value" id="stat-unique-servers">—</p>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
               <div class="stat-icon default"><span class="icon" data-icon="group"></span></div>
             </div>
-            <p class="stat-label">Bağlı Üyeler</p>
-            <p class="stat-value">28</p>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-header">
-              <div class="stat-icon default"><span class="icon" data-icon="mail"></span></div>
-            </div>
-            <p class="stat-label">Bekleyen Davetler</p>
-            <p class="stat-value">5</p>
+            <p class="stat-label">Bağlı İstemciler</p>
+            <p class="stat-value" id="stat-total-clients">—</p>
           </div>
         </section>
 
@@ -305,37 +305,6 @@
       <div class="modal-footer">
         <button class="btn-secondary" data-close-modal="modal-create-workspace">İptal</button>
         <button class="btn-primary" id="ws-submit">Oluştur</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== MODAL: Davet Gönder ===== -->
-  <div class="modal-overlay hidden" id="modal-invite">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="invite-modal-title">Üye Davet Et</h3>
-        <button class="modal-close" data-close-modal="modal-invite" aria-label="Kapat">
-          <span class="icon" data-icon="close"></span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>E-posta Adresi</label>
-          <input type="email" id="invite-email" placeholder="ornek@domain.com" />
-        </div>
-        <div class="form-group">
-          <label>Rol</label>
-          <select id="invite-role">
-            <option>Görüntüleyici</option>
-            <option>Düzenleyici</option>
-            <option selected>Üye</option>
-            <option>Yönetici</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" data-close-modal="modal-invite">İptal</button>
-        <button class="btn-primary" id="invite-submit">Davet Gönder</button>
       </div>
     </div>
   </div>
