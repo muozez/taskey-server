@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetManager — Dashboard</title>
+  <title>Taskey — Kontrol Paneli</title>
   <link rel="stylesheet" href="/css/style.css" />
-  <!-- Inter font from Google Fonts (only external dependency for typography) -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
   </style>
@@ -20,27 +19,27 @@
           <span class="icon" data-icon="terminal"></span>
         </div>
         <div>
-          <h1>NetManager</h1>
-          <p>Local Dashboard</p>
+          <h1>Taskey</h1>
+          <p>Yerel Kontrol Paneli</p>
         </div>
       </div>
 
       <nav class="sidebar-nav">
-        <a href="#" class="nav-item active">
+        <a href="#" class="nav-item active" data-page="dashboard">
           <span class="icon" data-icon="dashboard"></span>
-          <span>Dashboard</span>
+          <span>Kontrol Paneli</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-page="workspaces">
           <span class="icon" data-icon="layers"></span>
-          <span>Workspaces</span>
+          <span>Çalışma Alanları</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-page="servers">
           <span class="icon" data-icon="dns"></span>
-          <span>Servers</span>
+          <span>Sunucular</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-page="settings">
           <span class="icon" data-icon="settings"></span>
-          <span>Settings</span>
+          <span>Ayarlar</span>
         </a>
       </nav>
 
@@ -51,7 +50,7 @@
           </div>
           <div class="user-info">
             <p class="name">Muhammet</p>
-            <p class="role">Administrator</p>
+            <p class="role">Yönetici</p>
           </div>
         </div>
       </div>
@@ -60,272 +59,331 @@
     <!-- ===== Main Content ===== -->
     <main class="main-content">
 
-      <!-- Header -->
-      <header class="page-header">
-        <div>
-          <h2>İyi Günler, Muhammet!</h2>
-          <p class="subtitle" id="current-date">Pazartesi, 24 Temmuz 2023</p>
-        </div>
-        <div class="header-actions">
-          <div class="search-box">
-            <span class="icon" data-icon="search"></span>
-            <input id="search-input" type="text" placeholder="Search resources..." />
+      <!-- ========== SAYFA: Kontrol Paneli ========== -->
+      <div class="page" id="page-dashboard">
+        <header class="page-header">
+          <div>
+            <h2>İyi Günler, Muhammet!</h2>
+            <p class="subtitle" id="current-date"></p>
           </div>
-          <button class="btn-primary" id="create-workspace-btn">
-            <span class="icon" data-icon="add"></span>
-            Create New Workspace
-          </button>
-        </div>
-      </header>
-
-      <!-- Stats Row -->
-      <section class="stats-grid">
-        <!-- Stat 1 -->
-        <div class="stat-card">
-          <div class="stat-card-header">
-            <div class="stat-icon primary">
-              <span class="icon" data-icon="folder"></span>
+          <div class="header-actions">
+            <div class="search-box">
+              <span class="icon" data-icon="search"></span>
+              <input id="search-input" type="text" placeholder="Kaynak ara..." />
             </div>
-            <span class="stat-badge">+2 this wk</span>
-          </div>
-          <p class="stat-label">Active Workspaces</p>
-          <p class="stat-value">12</p>
-        </div>
-        <!-- Stat 2 -->
-        <div class="stat-card">
-          <div class="stat-card-header">
-            <div class="stat-icon default">
-              <span class="icon" data-icon="storage"></span>
-            </div>
-          </div>
-          <p class="stat-label">Total Servers</p>
-          <p class="stat-value">4</p>
-        </div>
-        <!-- Stat 3 -->
-        <div class="stat-card">
-          <div class="stat-card-header">
-            <div class="stat-icon default">
-              <span class="icon" data-icon="group"></span>
-            </div>
-          </div>
-          <p class="stat-label">Connected Members</p>
-          <p class="stat-value">28</p>
-        </div>
-        <!-- Stat 4 -->
-        <div class="stat-card">
-          <div class="stat-card-header">
-            <div class="stat-icon default">
-              <span class="icon" data-icon="mail"></span>
-            </div>
-          </div>
-          <p class="stat-label">Pending Invites</p>
-          <p class="stat-value">5</p>
-        </div>
-      </section>
-
-      <!-- Content Grid -->
-      <div class="content-grid">
-
-        <!-- Workspaces Section -->
-        <div>
-          <div class="section-header">
-            <h3>Active Workspaces</h3>
-            <button class="view-all-btn">View All</button>
-          </div>
-
-          <div class="workspaces-grid">
-
-            <!-- Workspace: Backend Production -->
-            <div class="workspace-card">
-              <div class="workspace-card-header">
-                <div class="workspace-info">
-                  <div class="workspace-avatar indigo">BP</div>
-                  <div>
-                    <h4 class="workspace-name">Backend Production</h4>
-                    <div class="workspace-status">
-                      <span class="status-dot online"></span>
-                      <span class="status-text">Online</span>
-                    </div>
-                  </div>
-                </div>
-                <button class="more-btn">
-                  <span class="icon" data-icon="more_vert"></span>
-                </button>
-              </div>
-              <div class="progress-section">
-                <div class="progress-label">
-                  <span class="label">CPU Usage</span>
-                  <span class="value">64%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill primary" style="width: 64%"></div>
-                </div>
-              </div>
-              <div class="workspace-footer">
-                <div class="team-avatars">
-                  <div class="avatar" style="background-color: #a5b4fc; margin-left: 0;"></div>
-                  <div class="avatar" style="background-color: #86efac;"></div>
-                  <div class="avatar" style="background-color: #fbbf24;"></div>
-                  <div class="avatar-count">+8</div>
-                </div>
-                <button class="btn-invite">Invite</button>
-              </div>
-            </div>
-
-            <!-- Workspace: Staging Env -->
-            <div class="workspace-card">
-              <div class="workspace-card-header">
-                <div class="workspace-info">
-                  <div class="workspace-avatar amber">ST</div>
-                  <div>
-                    <h4 class="workspace-name">Staging Env</h4>
-                    <div class="workspace-status">
-                      <span class="status-dot online"></span>
-                      <span class="status-text">Online</span>
-                    </div>
-                  </div>
-                </div>
-                <button class="more-btn">
-                  <span class="icon" data-icon="more_vert"></span>
-                </button>
-              </div>
-              <div class="progress-section">
-                <div class="progress-label">
-                  <span class="label">Storage Usage</span>
-                  <span class="value">28%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill primary" style="width: 28%"></div>
-                </div>
-              </div>
-              <div class="workspace-footer">
-                <div class="team-avatars">
-                  <div class="avatar" style="background-color: #c4b5fd; margin-left: 0;"></div>
-                  <div class="avatar-count">+2</div>
-                </div>
-                <button class="btn-invite">Invite</button>
-              </div>
-            </div>
-
-            <!-- Workspace: Mobile API -->
-            <div class="workspace-card">
-              <div class="workspace-card-header">
-                <div class="workspace-info">
-                  <div class="workspace-avatar rose">MA</div>
-                  <div>
-                    <h4 class="workspace-name">Mobile API</h4>
-                    <div class="workspace-status">
-                      <span class="status-dot pending"></span>
-                      <span class="status-text">Pending</span>
-                    </div>
-                  </div>
-                </div>
-                <button class="more-btn">
-                  <span class="icon" data-icon="more_vert"></span>
-                </button>
-              </div>
-              <div class="progress-section">
-                <div class="progress-label">
-                  <span class="label">CPU Usage</span>
-                  <span class="value">92%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill danger" style="width: 92%"></div>
-                </div>
-              </div>
-              <div class="workspace-footer">
-                <div class="team-avatars">
-                  <div class="avatar" style="background-color: #fca5a5; margin-left: 0;"></div>
-                  <div class="avatar" style="background-color: #93c5fd;"></div>
-                  <div class="avatar-count">+4</div>
-                </div>
-                <button class="btn-invite">Invite</button>
-              </div>
-            </div>
-
-            <!-- Add New Workspace -->
-            <div class="workspace-add" id="add-workspace-card">
-              <span class="icon" data-icon="add_circle"></span>
-              <span>Add New Workspace</span>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Recent Activities Section -->
-        <div>
-          <div class="section-header">
-            <h3>Recent Activities</h3>
-          </div>
-
-          <div class="activities-card">
-
-            <!-- Activity 1 -->
-            <div class="activity-item">
-              <div class="activity-content">
-                <div class="activity-icon update">
-                  <span class="icon" data-icon="update"></span>
-                </div>
-                <div class="activity-details">
-                  <p class="activity-title">Muhammet updated Server #4</p>
-                  <p class="activity-desc">Configured SSL certificates for staging.</p>
-                  <p class="activity-time">2 mins ago</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Activity 2 -->
-            <div class="activity-item">
-              <div class="activity-content">
-                <div class="activity-icon member">
-                  <span class="icon" data-icon="person_add"></span>
-                </div>
-                <div class="activity-details">
-                  <p class="activity-title">New member joined 'Marketing'</p>
-                  <p class="activity-desc">Selin G. has been added to workspace.</p>
-                  <p class="activity-time">45 mins ago</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Activity 3 -->
-            <div class="activity-item">
-              <div class="activity-content">
-                <div class="activity-icon deploy">
-                  <span class="icon" data-icon="rocket_launch"></span>
-                </div>
-                <div class="activity-details">
-                  <p class="activity-title">Deployment successful: 'API'</p>
-                  <p class="activity-desc">v2.4.0 successfully pushed to production.</p>
-                  <p class="activity-time">3 hours ago</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Activity 4 -->
-            <div class="activity-item">
-              <div class="activity-content">
-                <div class="activity-icon alert">
-                  <span class="icon" data-icon="warning"></span>
-                </div>
-                <div class="activity-details">
-                  <p class="activity-title">High Memory Alert</p>
-                  <p class="activity-desc">Mobile API reached 90% usage threshold.</p>
-                  <p class="activity-time">5 hours ago</p>
-                </div>
-              </div>
-            </div>
-
-            <button class="load-more-btn" id="load-more-activities">
-              LOAD MORE ACTIVITIES
+            <button class="btn-primary" id="create-workspace-btn">
+              <span class="icon" data-icon="add"></span>
+              Yeni Çalışma Alanı
             </button>
           </div>
+        </header>
+
+        <section class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-icon primary"><span class="icon" data-icon="folder"></span></div>
+              <span class="stat-badge">+2 bu hafta</span>
+            </div>
+            <p class="stat-label">Aktif Çalışma Alanları</p>
+            <p class="stat-value">12</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-icon default"><span class="icon" data-icon="storage"></span></div>
+            </div>
+            <p class="stat-label">Toplam Sunucu</p>
+            <p class="stat-value">4</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-icon default"><span class="icon" data-icon="group"></span></div>
+            </div>
+            <p class="stat-label">Bağlı Üyeler</p>
+            <p class="stat-value">28</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-icon default"><span class="icon" data-icon="mail"></span></div>
+            </div>
+            <p class="stat-label">Bekleyen Davetler</p>
+            <p class="stat-value">5</p>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <div>
+            <div class="section-header">
+              <h3>Aktif Çalışma Alanları</h3>
+              <button class="view-all-btn" data-page="workspaces">Tümünü Gör</button>
+            </div>
+            <div class="workspaces-grid" id="dashboard-workspaces">
+              <!-- JS ile doldurulacak -->
+            </div>
+          </div>
+
+          <div>
+            <div class="section-header">
+              <h3>Son Aktiviteler</h3>
+            </div>
+            <div class="activities-card">
+              <div class="activity-item">
+                <div class="activity-content">
+                  <div class="activity-icon update"><span class="icon" data-icon="update"></span></div>
+                  <div class="activity-details">
+                    <p class="activity-title">Muhammet Sunucu #4'ü güncelledi</p>
+                    <p class="activity-desc">Staging için SSL sertifikaları yapılandırıldı.</p>
+                    <p class="activity-time">2 dakika önce</p>
+                  </div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-content">
+                  <div class="activity-icon member"><span class="icon" data-icon="person_add"></span></div>
+                  <div class="activity-details">
+                    <p class="activity-title">Yeni üye 'Pazarlama' alanına katıldı</p>
+                    <p class="activity-desc">Selin G. çalışma alanına eklendi.</p>
+                    <p class="activity-time">45 dakika önce</p>
+                  </div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-content">
+                  <div class="activity-icon deploy"><span class="icon" data-icon="rocket_launch"></span></div>
+                  <div class="activity-details">
+                    <p class="activity-title">Dağıtım başarılı: 'API'</p>
+                    <p class="activity-desc">v2.4.0 başarıyla production'a gönderildi.</p>
+                    <p class="activity-time">3 saat önce</p>
+                  </div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-content">
+                  <div class="activity-icon alert"><span class="icon" data-icon="warning"></span></div>
+                  <div class="activity-details">
+                    <p class="activity-title">Yüksek Bellek Uyarısı</p>
+                    <p class="activity-desc">Mobile API %90 kullanım eşiğine ulaştı.</p>
+                    <p class="activity-time">5 saat önce</p>
+                  </div>
+                </div>
+              </div>
+              <button class="load-more-btn" id="load-more-activities">DAHA FAZLA AKTİVİTE YÜKLE</button>
+            </div>
+          </div>
         </div>
-
       </div>
-    </main>
 
+      <!-- ========== SAYFA: Çalışma Alanları ========== -->
+      <div class="page hidden" id="page-workspaces">
+        <header class="page-header">
+          <div>
+            <h2>Çalışma Alanları</h2>
+            <p class="subtitle">Tüm çalışma alanlarınızı yönetin</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn-primary" id="create-workspace-btn-2">
+              <span class="icon" data-icon="add"></span>
+              Yeni Çalışma Alanı
+            </button>
+          </div>
+        </header>
+        <div class="workspaces-grid workspaces-grid-full" id="all-workspaces-grid"></div>
+      </div>
+
+      <!-- ========== SAYFA: Sunucular ========== -->
+      <div class="page hidden" id="page-servers">
+        <header class="page-header">
+          <div>
+            <h2>Sunucular</h2>
+            <p class="subtitle">Bağlı sunucularınızı izleyin</p>
+          </div>
+        </header>
+        <div class="servers-grid" id="servers-grid"></div>
+      </div>
+
+      <!-- ========== SAYFA: Ayarlar ========== -->
+      <div class="page hidden" id="page-settings">
+        <header class="page-header">
+          <div>
+            <h2>Ayarlar</h2>
+            <p class="subtitle">Uygulama tercihlerinizi yapılandırın</p>
+          </div>
+        </header>
+        <div class="settings-container">
+          <div class="settings-card">
+            <h4>Genel Ayarlar</h4>
+            <div class="settings-row">
+              <div class="settings-label">
+                <p class="settings-title">Uygulama Adı</p>
+                <p class="settings-desc">Kontrol panelinde görüntülenen ad</p>
+              </div>
+              <input type="text" class="settings-input" value="Taskey" />
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">
+                <p class="settings-title">Dil</p>
+                <p class="settings-desc">Arayüz dili tercihi</p>
+              </div>
+              <select class="settings-input">
+                <option selected>Türkçe</option>
+                <option>English</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">
+                <p class="settings-title">Bildirimler</p>
+                <p class="settings-desc">E-posta bildirimleri al</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h4>Hesap</h4>
+            <div class="settings-row">
+              <div class="settings-label">
+                <p class="settings-title">Kullanıcı Adı</p>
+                <p class="settings-desc">Oturum açma bilgileriniz</p>
+              </div>
+              <input type="text" class="settings-input" value="Muhammet" />
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">
+                <p class="settings-title">Rol</p>
+                <p class="settings-desc">Sistem rolünüz</p>
+              </div>
+              <span class="settings-badge">Yönetici</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
   </div>
+
+  <!-- ===== MODAL: Yeni Çalışma Alanı ===== -->
+  <div class="modal-overlay hidden" id="modal-create-workspace">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Yeni Çalışma Alanı Oluştur</h3>
+        <button class="modal-close" data-close-modal="modal-create-workspace">
+          <span class="icon" data-icon="close"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Çalışma Alanı Adı</label>
+          <input type="text" id="ws-name" placeholder="Örn: Backend Production" />
+        </div>
+        <div class="form-group">
+          <label>Sunucu</label>
+          <select id="ws-server">
+            <option value="">Sunucu seçin...</option>
+            <option>Sunucu #1 — EU West</option>
+            <option>Sunucu #2 — US East</option>
+            <option>Sunucu #3 — Asia</option>
+            <option>Sunucu #4 — EU Central</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Açıklama (isteğe bağlı)</label>
+          <textarea id="ws-desc" rows="3" placeholder="Kısa bir açıklama ekleyin..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close-modal="modal-create-workspace">İptal</button>
+        <button class="btn-primary" id="ws-submit">Oluştur</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: Davet Gönder ===== -->
+  <div class="modal-overlay hidden" id="modal-invite">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="invite-modal-title">Üye Davet Et</h3>
+        <button class="modal-close" data-close-modal="modal-invite">
+          <span class="icon" data-icon="close"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>E-posta Adresi</label>
+          <input type="email" id="invite-email" placeholder="ornek@domain.com" />
+        </div>
+        <div class="form-group">
+          <label>Rol</label>
+          <select id="invite-role">
+            <option>Görüntüleyici</option>
+            <option>Düzenleyici</option>
+            <option selected>Üye</option>
+            <option>Yönetici</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close-modal="modal-invite">İptal</button>
+        <button class="btn-primary" id="invite-submit">Davet Gönder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: Workspace Detay ===== -->
+  <div class="modal-overlay hidden" id="modal-workspace-detail">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="detail-modal-title">Çalışma Alanı Detayı</h3>
+        <button class="modal-close" data-close-modal="modal-workspace-detail">
+          <span class="icon" data-icon="close"></span>
+        </button>
+      </div>
+      <div class="modal-body" id="detail-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close-modal="modal-workspace-detail">Kapat</button>
+        <button class="btn-danger" id="detail-delete-btn">Alanı Sil</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: Onay ===== -->
+  <div class="modal-overlay hidden" id="modal-confirm">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="confirm-title">Onay</h3>
+        <button class="modal-close" data-close-modal="modal-confirm">
+          <span class="icon" data-icon="close"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close-modal="modal-confirm">Vazgeç</button>
+        <button class="btn-danger" id="confirm-ok">Onayla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Context Menu ===== -->
+  <div class="context-menu hidden" id="context-menu">
+    <button class="context-menu-item" data-action="detail">
+      <span class="icon" data-icon="dashboard"></span>
+      <span>Detayları Gör</span>
+    </button>
+    <button class="context-menu-item" data-action="invite">
+      <span class="icon" data-icon="person_add"></span>
+      <span>Üye Davet Et</span>
+    </button>
+    <div class="context-menu-divider"></div>
+    <button class="context-menu-item danger" data-action="delete">
+      <span class="icon" data-icon="warning"></span>
+      <span>Alanı Sil</span>
+    </button>
+  </div>
+
+  <!-- ===== Toast ===== -->
+  <div class="toast-container" id="toast-container"></div>
 
   <script src="/js/app.js"></script>
 </body>

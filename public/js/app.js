@@ -1,4 +1,4 @@
-// SVG Icon definitions — replaces Material Symbols CDN
+// ===== SVG Icon Definitions =====
 const ICONS = {
   terminal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m226-559 78 78q12 12 12 28.5T304-424q-12 12-28.5 12T247-424L141-530q-12-12-12-28.5t12-28.5l106-106q12-12 28.5-12t28.5 12q12 12 12 28.5T304-636l-78 77Zm254 239q-17 0-28.5-11.5T440-360q0-17 11.5-28.5T480-400h280q17 0 28.5 11.5T800-360q0 17-11.5 28.5T760-320H480Z"/></svg>`,
   dashboard: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M520-600v-240h320v240H520ZM120-440v-400h320v400H120Zm400 320v-400h320v400H520Zm-400 0v-240h320v240H120Z"/></svg>`,
@@ -17,66 +17,81 @@ const ICONS = {
   person_add: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M720-400v-120H600v-80h120v-120h80v120h120v80H800v120h-80Zm-360-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Z"/></svg>`,
   rocket_launch: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M226-346q-17-52-25.5-106T192-560q0-155 72.5-292T480-960q143 71 215.5 208T768-460q0 54-8.5 108T734-246l-62-62q12-40 18-82t6-70q0-130-57.5-247.5T480-860Q375-766 317.5-648.5T260-460q0 28 6 70t18 82l-58 62ZM480-200q-51 0-96.5-17.5T300-266l44-44q26 20 60 31t76 11q42 0 76-11t60-31l44 44q-38 31-83.5 48.5T480-200Zm0-200q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Z"/></svg>`,
   warning: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m40-120 440-760 440 760H40Zm138-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm-40-120h80v-200h-80v200Z"/></svg>`,
+  close: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>`,
+  check: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>`,
 };
 
-/**
- * Render an SVG icon by name
- */
-function icon(name) {
-  return `<span class="icon">${ICONS[name] || ""}</span>`;
-}
+// ===== Sample Data =====
+const WORKSPACES = [
+  { id: "backend-production", name: "Backend Production", abbr: "BP", color: "indigo", status: "online", statusText: "Çevrimiçi", metric: "CPU Kullanımı", usage: 64, members: 11, avatarColors: ["#a5b4fc", "#86efac", "#fbbf24"] },
+  { id: "staging-env", name: "Staging Env", abbr: "ST", color: "amber", status: "online", statusText: "Çevrimiçi", metric: "Depolama Kullanımı", usage: 28, members: 3, avatarColors: ["#c4b5fd"] },
+  { id: "mobile-api", name: "Mobile API", abbr: "MA", color: "rose", status: "pending", statusText: "Beklemede", metric: "CPU Kullanımı", usage: 92, members: 6, avatarColors: ["#fca5a5", "#93c5fd"] },
+];
 
-/**
- * Get current date formatted in Turkish
- */
+const SERVERS = [
+  { id: 1, name: "Sunucu #1 — EU West", ip: "185.32.110.12", status: "Çevrimiçi", cpu: "24%", ram: "4.2 GB / 16 GB", uptime: "42 gün" },
+  { id: 2, name: "Sunucu #2 — US East", ip: "104.21.55.78", status: "Çevrimiçi", cpu: "51%", ram: "11.3 GB / 32 GB", uptime: "18 gün" },
+  { id: 3, name: "Sunucu #3 — Asia", ip: "45.77.200.15", status: "Çevrimdışı", cpu: "—", ram: "— / 8 GB", uptime: "—" },
+  { id: 4, name: "Sunucu #4 — EU Central", ip: "162.55.44.99", status: "Çevrimiçi", cpu: "78%", ram: "6.1 GB / 8 GB", uptime: "7 gün" },
+];
+
+// ===== Helpers =====
 function getFormattedDate() {
   const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
-  const months = [
-    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
-  ];
+  const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
   const now = new Date();
   return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
-/**
- * Initialize the app when DOM is ready
- */
-document.addEventListener("DOMContentLoaded", () => {
-  // Fill dynamic date
-  const dateEl = document.getElementById("current-date");
-  if (dateEl) {
-    dateEl.textContent = getFormattedDate();
-  }
+function showToast(message, type = "success") {
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="icon">${ICONS.check}</span> ${message}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add("removing");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
 
-  // Inject all icons
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.add("hidden");
+}
+
+function navigateTo(pageName) {
+  // Hide all pages
+  document.querySelectorAll(".page").forEach((p) => p.classList.add("hidden"));
+  // Show target page
+  const target = document.getElementById(`page-${pageName}`);
+  if (target) target.classList.remove("hidden");
+  // Update sidebar active
+  document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+  const navItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
+  if (navItem) navItem.classList.add("active");
+  // Render page-specific content
+  if (pageName === "workspaces") renderAllWorkspaces();
+  if (pageName === "servers") renderServers();
+  if (pageName === "dashboard") renderDashboardWorkspaces();
+  // Re-inject icons
+  injectIcons();
+  animateProgressBars();
+}
+
+function injectIcons() {
   document.querySelectorAll("[data-icon]").forEach((el) => {
     const name = el.getAttribute("data-icon");
-    el.innerHTML = ICONS[name] || "";
+    if (ICONS[name]) el.innerHTML = ICONS[name];
   });
+}
 
-  // Search box functionality
-  const searchInput = document.getElementById("search-input");
-  if (searchInput) {
-    searchInput.addEventListener("input", (e) => {
-      const query = e.target.value.toLowerCase();
-      document.querySelectorAll(".workspace-card").forEach((card) => {
-        const name = card.querySelector(".workspace-name")?.textContent.toLowerCase() || "";
-        card.style.display = name.includes(query) ? "" : "none";
-      });
-    });
-  }
-
-  // Navigate sidebar
-  document.querySelectorAll(".nav-item").forEach((item) => {
-    item.addEventListener("click", (e) => {
-      e.preventDefault();
-      document.querySelectorAll(".nav-item").forEach((i) => i.classList.remove("active"));
-      item.classList.add("active");
-    });
-  });
-
-  // Progress bar animation
+function animateProgressBars() {
   document.querySelectorAll(".progress-fill").forEach((bar) => {
     const width = bar.style.width;
     bar.style.width = "0%";
@@ -86,28 +101,364 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   });
+}
 
-  // Load more activities button
-  const loadMoreBtn = document.getElementById("load-more-activities");
-  if (loadMoreBtn) {
-    loadMoreBtn.addEventListener("click", () => {
-      alert("Daha fazla aktivite yüklenecek...");
+// ===== Workspace Card Renderer =====
+function renderWorkspaceCard(ws, showAdd) {
+  const extraCount = Math.max(0, ws.members - ws.avatarColors.length);
+  const usageClass = ws.usage >= 80 ? "danger" : "primary";
+  return `
+    <div class="workspace-card" data-workspace-id="${ws.id}">
+      <div class="workspace-card-header">
+        <div class="workspace-info">
+          <div class="workspace-avatar ${ws.color}">${ws.abbr}</div>
+          <div>
+            <h4 class="workspace-name">${ws.name}</h4>
+            <div class="workspace-status">
+              <span class="status-dot ${ws.status}"></span>
+              <span class="status-text">${ws.statusText}</span>
+            </div>
+          </div>
+        </div>
+        <button class="more-btn" data-ws-menu="${ws.id}">
+          <span class="icon" data-icon="more_vert"></span>
+        </button>
+      </div>
+      <div class="progress-section">
+        <div class="progress-label">
+          <span class="label">${ws.metric}</span>
+          <span class="value">${ws.usage}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ${usageClass}" style="width: ${ws.usage}%"></div>
+        </div>
+      </div>
+      <div class="workspace-footer">
+        <div class="team-avatars">
+          ${ws.avatarColors.map((c, i) => `<div class="avatar" style="background-color: ${c};${i === 0 ? ' margin-left: 0;' : ''}"></div>`).join("")}
+          ${extraCount > 0 ? `<div class="avatar-count">+${extraCount}</div>` : ""}
+        </div>
+        <button class="btn-invite" data-invite="${ws.name}">Davet Et</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderDashboardWorkspaces() {
+  const grid = document.getElementById("dashboard-workspaces");
+  if (!grid) return;
+  grid.innerHTML = WORKSPACES.map((ws) => renderWorkspaceCard(ws)).join("") + `
+    <div class="workspace-add" id="add-workspace-card">
+      <span class="icon" data-icon="add_circle"></span>
+      <span>Yeni Çalışma Alanı Ekle</span>
+    </div>
+  `;
+  bindWorkspaceEvents(grid);
+}
+
+function renderAllWorkspaces() {
+  const grid = document.getElementById("all-workspaces-grid");
+  if (!grid) return;
+  grid.innerHTML = WORKSPACES.map((ws) => renderWorkspaceCard(ws)).join("") + `
+    <div class="workspace-add" id="add-workspace-card-2">
+      <span class="icon" data-icon="add_circle"></span>
+      <span>Yeni Çalışma Alanı Ekle</span>
+    </div>
+  `;
+  bindWorkspaceEvents(grid);
+}
+
+function renderServers() {
+  const grid = document.getElementById("servers-grid");
+  if (!grid) return;
+  grid.innerHTML = SERVERS.map((s) => `
+    <div class="server-card">
+      <div class="server-card-header">
+        <h4>${s.name}</h4>
+        <div class="workspace-status">
+          <span class="status-dot ${s.status === 'Çevrimiçi' ? 'online' : 'offline'}"></span>
+          <span class="status-text">${s.status}</span>
+        </div>
+      </div>
+      <div class="server-meta">
+        <div class="server-meta-row"><span class="label">IP Adresi</span><span class="value">${s.ip}</span></div>
+        <div class="server-meta-row"><span class="label">CPU</span><span class="value">${s.cpu}</span></div>
+        <div class="server-meta-row"><span class="label">RAM</span><span class="value">${s.ram}</span></div>
+        <div class="server-meta-row"><span class="label">Çalışma Süresi</span><span class="value">${s.uptime}</span></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+// ===== Context Menu =====
+let contextTarget = null;
+
+function showContextMenu(x, y, wsId) {
+  const menu = document.getElementById("context-menu");
+  contextTarget = wsId;
+  menu.classList.remove("hidden");
+  // Position
+  const menuW = 200;
+  const menuH = 150;
+  const finalX = (x + menuW > window.innerWidth) ? x - menuW : x;
+  const finalY = (y + menuH > window.innerHeight) ? y - menuH : y;
+  menu.style.left = finalX + "px";
+  menu.style.top = finalY + "px";
+  injectIcons();
+}
+
+function hideContextMenu() {
+  const menu = document.getElementById("context-menu");
+  menu.classList.add("hidden");
+  contextTarget = null;
+}
+
+// ===== Workspace Detail Modal =====
+function showWorkspaceDetail(wsId) {
+  const ws = WORKSPACES.find((w) => w.id === wsId);
+  if (!ws) return;
+  document.getElementById("detail-modal-title").textContent = ws.name;
+  document.getElementById("detail-modal-body").innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-label">Durum</div>
+        <div class="detail-value">${ws.statusText}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Üye Sayısı</div>
+        <div class="detail-value">${ws.members} kişi</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">${ws.metric}</div>
+        <div class="detail-value">${ws.usage}%</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Kısa Ad</div>
+        <div class="detail-value">${ws.abbr}</div>
+      </div>
+    </div>
+    <div style="margin-top: 20px;">
+      <div class="progress-label">
+        <span class="label">${ws.metric}</span>
+        <span class="value">${ws.usage}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill ${ws.usage >= 80 ? 'danger' : 'primary'}" style="width: ${ws.usage}%"></div>
+      </div>
+    </div>
+  `;
+  // Wire delete button
+  document.getElementById("detail-delete-btn").onclick = () => {
+    closeModal("modal-workspace-detail");
+    confirmAction(`"${ws.name}" çalışma alanını silmek istediğinize emin misiniz?`, () => {
+      const idx = WORKSPACES.findIndex((w) => w.id === wsId);
+      if (idx > -1) WORKSPACES.splice(idx, 1);
+      showToast(`"${ws.name}" silindi`, "info");
+      renderDashboardWorkspaces();
+      renderAllWorkspaces();
+      injectIcons();
+      animateProgressBars();
     });
-  }
+  };
+  openModal("modal-workspace-detail");
+  injectIcons();
+  animateProgressBars();
+}
 
-  // Create New Workspace button
-  const createBtn = document.getElementById("create-workspace-btn");
-  if (createBtn) {
-    createBtn.addEventListener("click", () => {
-      alert("Yeni workspace oluşturma formu açılacak...");
+// ===== Confirm Modal =====
+let confirmCallback = null;
+function confirmAction(message, onConfirm) {
+  document.getElementById("confirm-message").textContent = message;
+  confirmCallback = onConfirm;
+  openModal("modal-confirm");
+}
+
+// ===== Bind Workspace Events =====
+function bindWorkspaceEvents(container) {
+  // More button (3-dot) → context menu
+  container.querySelectorAll("[data-ws-menu]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const rect = btn.getBoundingClientRect();
+      showContextMenu(rect.right, rect.bottom, btn.getAttribute("data-ws-menu"));
     });
-  }
-
+  });
+  // Invite buttons
+  container.querySelectorAll("[data-invite]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const wsName = btn.getAttribute("data-invite");
+      document.getElementById("invite-modal-title").textContent = `"${wsName}" — Üye Davet Et`;
+      openModal("modal-invite");
+    });
+  });
+  // Workspace card click → detail
+  container.querySelectorAll(".workspace-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const wsId = card.getAttribute("data-workspace-id");
+      if (wsId) showWorkspaceDetail(wsId);
+    });
+  });
   // Add workspace card
-  const addCard = document.getElementById("add-workspace-card");
-  if (addCard) {
-    addCard.addEventListener("click", () => {
-      alert("Yeni workspace oluşturma formu açılacak...");
+  const addCards = container.querySelectorAll(".workspace-add");
+  addCards.forEach((card) => {
+    card.addEventListener("click", () => openModal("modal-create-workspace"));
+  });
+}
+
+// ===== Init =====
+document.addEventListener("DOMContentLoaded", () => {
+  // Date
+  const dateEl = document.getElementById("current-date");
+  if (dateEl) dateEl.textContent = getFormattedDate();
+
+  // Inject icons
+  injectIcons();
+
+  // Render dashboard workspaces
+  renderDashboardWorkspaces();
+  injectIcons();
+  animateProgressBars();
+
+  // ---- Sidebar Navigation ----
+  document.querySelectorAll(".nav-item[data-page]").forEach((item) => {
+    item.addEventListener("click", (e) => {
+      e.preventDefault();
+      navigateTo(item.getAttribute("data-page"));
+    });
+  });
+
+  // ---- "Tümünü Gör" button ----
+  document.querySelectorAll(".view-all-btn[data-page]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      navigateTo(btn.getAttribute("data-page"));
+    });
+  });
+
+  // ---- Search ----
+  const searchInput = document.getElementById("search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const query = e.target.value.toLowerCase();
+      document.querySelectorAll("#dashboard-workspaces .workspace-card").forEach((card) => {
+        const name = card.querySelector(".workspace-name")?.textContent.toLowerCase() || "";
+        card.style.display = name.includes(query) ? "" : "none";
+      });
     });
   }
+
+  // ---- Create workspace buttons ----
+  ["create-workspace-btn", "create-workspace-btn-2"].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener("click", () => openModal("modal-create-workspace"));
+  });
+
+  // ---- Submit new workspace ----
+  document.getElementById("ws-submit").addEventListener("click", () => {
+    const name = document.getElementById("ws-name").value.trim();
+    const server = document.getElementById("ws-server").value;
+    if (!name) { showToast("Lütfen bir ad girin", "error"); return; }
+    if (!server) { showToast("Lütfen bir sunucu seçin", "error"); return; }
+
+    const colors = ["indigo", "amber", "rose", "green", "blue"];
+    const abbr = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+    WORKSPACES.push({
+      id: name.toLowerCase().replace(/\s+/g, "-"),
+      name, abbr,
+      color: colors[WORKSPACES.length % colors.length],
+      status: "pending", statusText: "Beklemede",
+      metric: "CPU Kullanımı", usage: 0, members: 1,
+      avatarColors: ["#a5b4fc"],
+    });
+
+    closeModal("modal-create-workspace");
+    document.getElementById("ws-name").value = "";
+    document.getElementById("ws-server").value = "";
+    document.getElementById("ws-desc").value = "";
+    showToast(`"${name}" oluşturuldu!`);
+    renderDashboardWorkspaces();
+    renderAllWorkspaces();
+    injectIcons();
+    animateProgressBars();
+  });
+
+  // ---- Invite submit ----
+  document.getElementById("invite-submit").addEventListener("click", () => {
+    const email = document.getElementById("invite-email").value.trim();
+    if (!email) { showToast("Lütfen bir e-posta adresi girin", "error"); return; }
+    closeModal("modal-invite");
+    document.getElementById("invite-email").value = "";
+    showToast(`${email} adresine davet gönderildi!`);
+  });
+
+  // ---- Confirm modal OK button ----
+  document.getElementById("confirm-ok").addEventListener("click", () => {
+    closeModal("modal-confirm");
+    if (confirmCallback) { confirmCallback(); confirmCallback = null; }
+  });
+
+  // ---- Close modals ----
+  document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      closeModal(btn.getAttribute("data-close-modal"));
+    });
+  });
+
+  // ---- Close modal on overlay click ----
+  document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.classList.add("hidden");
+    });
+  });
+
+  // ---- Context menu actions ----
+  document.querySelectorAll(".context-menu-item[data-action]").forEach((item) => {
+    item.addEventListener("click", () => {
+      const action = item.getAttribute("data-action");
+      const wsId = contextTarget;
+      hideContextMenu();
+      if (!wsId) return;
+      const ws = WORKSPACES.find((w) => w.id === wsId);
+      if (!ws) return;
+
+      if (action === "detail") {
+        showWorkspaceDetail(wsId);
+      } else if (action === "invite") {
+        document.getElementById("invite-modal-title").textContent = `"${ws.name}" — Üye Davet Et`;
+        openModal("modal-invite");
+      } else if (action === "delete") {
+        confirmAction(`"${ws.name}" çalışma alanını silmek istediğinize emin misiniz?`, () => {
+          const idx = WORKSPACES.findIndex((w) => w.id === wsId);
+          if (idx > -1) WORKSPACES.splice(idx, 1);
+          showToast(`"${ws.name}" silindi`, "info");
+          renderDashboardWorkspaces();
+          renderAllWorkspaces();
+          injectIcons();
+          animateProgressBars();
+        });
+      }
+    });
+  });
+
+  // ---- Hide context menu on outside click ----
+  document.addEventListener("click", (e) => {
+    const menu = document.getElementById("context-menu");
+    if (!menu.classList.contains("hidden") && !menu.contains(e.target) && !e.target.closest("[data-ws-menu]")) {
+      hideContextMenu();
+    }
+  });
+
+  // ---- Load more activities ----
+  document.getElementById("load-more-activities").addEventListener("click", () => {
+    showToast("Daha fazla aktivite yükleniyor...", "info");
+  });
+
+  // ---- Keyboard: Escape closes modals & context menu ----
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      document.querySelectorAll(".modal-overlay:not(.hidden)").forEach((m) => m.classList.add("hidden"));
+      hideContextMenu();
+    }
+  });
 });
