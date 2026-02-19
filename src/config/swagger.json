@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Taskey Remote Server API",
-    "description": "Taskey uzak sunucu API'si. Lokal node'lar SQLite ile çalışır, remote server PostgreSQL kullanır. Diff tabanlı senkronizasyon ile offline-first mimari desteklenir.",
-    "version": "1.0.0",
+    "description": "Taskey uzak sunucu API'si. Lokal node'lar SQLite ile çalışır, remote server PostgreSQL kullanır.\n\n## Offline-First Sync Mimarisi\n\nTaskey, **diff tabanlı incremental senkronizasyon** ve **offline-first** mimariyi destekler. Her lokal client bağımsız çalışır ve çevrimdışı iken bile değişiklik yapabilir. Yeniden bağlandığında biriken diff'ler sunucuya toplu gönderilir.\n\n### Temel Kavramlar\n\n| Kavram | Açıklama |\n|--------|----------|\n| **Diff** | Tek bir değişiklik kaydı (entity, action, field, oldValue, newValue) |\n| **base_version** | Client'ın diff'i oluşturduğu andaki workspace versiyonu |\n| **current_version** | Workspace'in sunucudaki son onaylanmış versiyonu |\n| **Snapshot** | Bir versiyondaki tüm entity'lerin tam durumu (JSONB) |\n| **Reconcile** | Diff'lerin snapshot'a uygulanıp yeni versiyon oluşturulması |\n\n### Sync Yaşam Döngüsü\n\n```\nFaz 1 — İlk Katılım:\n  POST /api/join → clientId + currentVersion\n  POST /api/sync/full → tam snapshot\n\nFaz 2 — Online Sync:\n  Değişiklik yap → diff üret (base_version = mevcut)\n  POST /api/sync/push → diff gönder\n  GET  /api/sync/pull → diğer clientların diff'lerini çek\n  POST /api/sync/heartbeat → online durumu bildir\n\nFaz 3 — Offline Modu:\n  Çevrimdışı çalış → diff'leri lokal biriktir\n  base_version = son bilinen versiyon\n  client_timestamp = lokal saat\n\nFaz 4 — Yeniden Bağlantı:\n  1. POST /api/sync/heartbeat → hasPendingUpdates kontrol\n  2. POST /api/sync/push → biriken diff'leri toplu gönder\n  3. GET  /api/sync/pull → sunucu değişikliklerini çek\n  4. Lokale uygula\n```\n\n### Conflict Detection Algoritması\n\n1. Gelen diff'in `base_version < workspace.current_version` → versiyon farkı var\n2. `(base_version, current_version]` aralığında `status=applied` diff'ler taranır\n3. Aynı `entity + entityId + field` → **GERÇEK ÇAKIŞMA**\n4. Farklı field → çakışma yok, **field-level merge** güvenli\n5. Delete işlemi → tam entity çakışması\n\n### Conflict Resolution Stratejileri\n\n| Strateji | Davranış | Risk |\n|----------|----------|------|\n| `auto-merge` | Farklı field'lar otomatik birleşir, aynı field'da LWW (timestamp) | Düşük |\n| `last-writer-wins` | Her zaman en son timestamp kazanır | Orta — veri kaybı riski |\n| `server-wins` | Sunucudaki mevcut versiyon korunur, client diff reject | Düşük — client kaybeder |\n| `manual` | Tüm çakışmalar dashboard'a yönlendirilir | Yok — ama yavaş |\n\n### Client Tarafı Önerilen Akış\n\n```\n1. Uygulama açılır → heartbeat gönder\n2. hasPendingUpdates=true → pull yap → lokale uygula\n3. Kullanıcı değişiklik yapar → diff üret (base_version kaydet)\n4. Online ise → hemen push\n5. Offline ise → lokalde biriktir\n6. Bağlantı geldiğinde → push (tüm biriken diff'ler) → pull\n7. Conflict varsa → kullanıcıya göster veya stratejiye bırak\n```",
+    "version": "1.1.0",
     "contact": {
       "name": "Taskey",
       "url": "https://github.com/muozez/taskey-server"
@@ -16,7 +16,14 @@
     { "name": "Auth", "description": "Kimlik doğrulama işlemleri" },
     { "name": "Workspaces", "description": "Çalışma alanı yönetimi (Auth gerekli)" },
     { "name": "Join", "description": "Lokal client katılım (Public)" },
-    { "name": "Sync", "description": "Diff tabanlı senkronizasyon" }
+    {
+      "name": "Sync — Client",
+      "description": "Lokal client'lar için senkronizasyon endpoint'leri. Auth gerektirmez, clientId ile doğrulanır.\n\n**Push**: Offline biriken diff'leri toplu gönder\n**Pull**: Diğer client'ların değişikliklerini çek\n**Full Sync**: Tam snapshot ile başlangıç durumunu al\n**Heartbeat**: Online durumu bildir, pending update kontrol et"
+    },
+    {
+      "name": "Sync — Dashboard",
+      "description": "Dashboard admin'leri için senkronizasyon yönetim endpoint'leri. Auth (Bearer token) gerektirir.\n\n**Status**: Workspace sync durumunu görüntüle\n**Conflicts**: Çakışma listesi ve detayları\n**Resolve**: Tekil veya toplu conflict çözümleme\n**Strategy**: Workspace sync stratejisini güncelle"
+    }
   ],
   "components": {
     "securitySchemes": {
@@ -69,6 +76,11 @@
           "description": { "type": "string" },
           "joinKey": { "type": "string", "pattern": "^[A-Z2-9]{4}-[A-Z2-9]{4}$", "example": "ABCD-EF23" },
           "currentVersion": { "type": "integer" },
+          "syncStrategy": {
+            "type": "string",
+            "enum": ["auto-merge", "last-writer-wins", "server-wins", "manual"],
+            "description": "Workspace'in conflict çözümleme stratejisi"
+          },
           "members": { "type": "integer" },
           "createdAt": { "type": "string", "format": "date-time" },
           "connectedClients": {
@@ -83,7 +95,13 @@
         "properties": {
           "name": { "type": "string", "example": "Backend Production" },
           "server": { "type": "string", "example": "Sunucu #1 — EU West" },
-          "description": { "type": "string", "example": "Production backend ortamı" }
+          "description": { "type": "string", "example": "Production backend ortamı" },
+          "syncStrategy": {
+            "type": "string",
+            "enum": ["auto-merge", "last-writer-wins", "server-wins", "manual"],
+            "default": "auto-merge",
+            "description": "Conflict çözümleme stratejisi (varsayılan: auto-merge)"
+          }
         }
       },
       "ConnectedClient": {
@@ -113,33 +131,73 @@
           "joinKey": { "type": "string", "example": "ABCD-EF23" }
         }
       },
+      "SyncStrategy": {
+        "type": "string",
+        "enum": ["auto-merge", "last-writer-wins", "server-wins", "manual"],
+        "description": "**auto-merge**: Farklı field'lar otomatik birleşir, aynı field çakışmasında LWW. **last-writer-wins**: Son timestamp kazanır. **server-wins**: Sunucu versiyonu korunur. **manual**: Dashboard'dan çözülür."
+      },
       "DiffData": {
         "type": "object",
-        "description": "Tek bir değişiklik kaydı",
+        "description": "Tek bir değişiklik kaydı. Client bu yapıyı her lokal değişiklikte üretir.",
         "required": ["entity", "entityId", "action"],
         "properties": {
-          "entity": { "type": "string", "enum": ["task", "project", "column", "label", "comment"], "example": "task" },
-          "entityId": { "type": "string", "format": "uuid" },
-          "action": { "type": "string", "enum": ["create", "update", "delete"] },
-          "field": { "type": "string", "nullable": true, "example": "title", "description": "Güncellenen alan (create/delete için null)" },
-          "oldValue": { "description": "Önceki değer" },
-          "newValue": { "description": "Yeni değer" }
+          "entity": {
+            "type": "string",
+            "enum": ["task", "project", "column", "label", "comment"],
+            "example": "task",
+            "description": "Değişikliğin yapıldığı entity tipi"
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Değişen entity'nin unique ID'si"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["create", "update", "delete"],
+            "description": "Değişiklik tipi"
+          },
+          "field": {
+            "type": "string",
+            "nullable": true,
+            "example": "title",
+            "description": "Güncellenen alan adı. create/delete için null. Field-level merge bu alana göre yapılır."
+          },
+          "oldValue": {
+            "description": "Önceki değer (update için). Client'ın bildiği eski değer."
+          },
+          "newValue": {
+            "description": "Yeni değer. create: tam obje, update: yeni alan değeri, delete: null"
+          }
         }
       },
       "PushRequest": {
         "type": "object",
         "required": ["clientId", "diffs"],
+        "description": "Client'ın sunucuya göndereceği diff paketi. Offline biriken diff'ler bu formatta toplu gönderilebilir.",
         "properties": {
-          "clientId": { "type": "string", "format": "uuid" },
+          "clientId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "POST /api/join ile alınan client ID"
+          },
           "diffs": {
             "type": "array",
+            "description": "Gönderilecek diff listesi. Offline iken birden fazla diff birikebilir. client_timestamp sırasına göre gönderilmeli.",
             "items": {
               "type": "object",
               "required": ["data", "clientTimestamp"],
               "properties": {
-                "baseVersion": { "type": "integer", "description": "Client'ın bu diff'i oluşturduğu andaki versiyon" },
+                "baseVersion": {
+                  "type": "integer",
+                  "description": "Client'ın bu diff'i oluşturduğu andaki workspace versiyonu. Conflict detection için kritik. Offline iken tüm diff'ler aynı base_version'a sahip olabilir."
+                },
                 "data": { "$ref": "#/components/schemas/DiffData" },
-                "clientTimestamp": { "type": "string", "format": "date-time" }
+                "clientTimestamp": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Diff'in client tarafında oluşturulma zamanı. LWW stratejisinde kazanan bu zamana göre belirlenir."
+                }
               }
             }
           }
@@ -147,23 +205,82 @@
       },
       "PushResponse": {
         "type": "object",
+        "description": "Push sonucu. Hangi diff'lerin kabul/red/conflict edildiğini ve otomatik çözümleme detaylarını içerir.",
         "properties": {
           "success": { "type": "boolean" },
-          "accepted": { "type": "integer" },
-          "conflicts": { "type": "integer" },
-          "conflictDetails": { "type": "array", "items": { "type": "object" } },
-          "currentVersion": { "type": "integer" }
+          "accepted": {
+            "type": "integer",
+            "description": "Başarıyla kabul edilip reconcile edilen diff sayısı"
+          },
+          "rejected": {
+            "type": "integer",
+            "description": "Strateji gereği reddedilen diff sayısı (server-wins veya LWW kaybedeni)"
+          },
+          "conflicts": {
+            "type": "integer",
+            "description": "Manuel çözüm bekleyen çakışma sayısı (sadece manual stratejide)"
+          },
+          "autoResolved": {
+            "type": "integer",
+            "description": "Otomatik çözümlenen çakışma sayısı (auto-merge veya LWW)"
+          },
+          "autoResolvedDetails": {
+            "type": "array",
+            "description": "Otomatik çözümlenen çakışmaların detayları",
+            "items": {
+              "type": "object",
+              "properties": {
+                "entity": { "type": "string" },
+                "entityId": { "type": "string" },
+                "field": { "type": "string" },
+                "strategy": { "type": "string", "description": "Uygulanan çözüm açıklaması" }
+              }
+            }
+          },
+          "conflictDetails": {
+            "type": "array",
+            "description": "Manuel çözüm bekleyen çakışmaların detayları",
+            "items": {
+              "type": "object",
+              "properties": {
+                "diffId": { "type": "string", "format": "uuid" },
+                "reason": { "type": "string" },
+                "data": { "$ref": "#/components/schemas/DiffData" },
+                "serverVersion": {
+                  "description": "Sunucudaki çakışan diff'in data'sı (karşılaştırma için)",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "currentVersion": {
+            "type": "integer",
+            "description": "Workspace'in güncel versiyonu (reconcile sonrası)"
+          },
+          "strategy": {
+            "type": "string",
+            "description": "Uygulanan sync stratejisi"
+          }
         }
       },
       "PullResponse": {
         "type": "object",
+        "description": "Pull yanıtı. Client bu diff'leri lokale uygulayarak güncel kalır.",
         "properties": {
           "success": { "type": "boolean" },
-          "upToDate": { "type": "boolean" },
+          "upToDate": {
+            "type": "boolean",
+            "description": "true ise client zaten güncel, diffs boş döner"
+          },
           "currentVersion": { "type": "integer" },
-          "fromVersion": { "type": "integer" },
+          "fromVersion": {
+            "type": "integer",
+            "description": "Hangi versiyondan itibaren diff'ler döndürüldü"
+          },
+          "syncStrategy": { "$ref": "#/components/schemas/SyncStrategy" },
           "diffs": {
             "type": "array",
+            "description": "Diğer client'lardan gelen, sinceVersion sonrası applied diff'ler. Client kendi gönderdiği diff'leri görmez.",
             "items": {
               "type": "object",
               "properties": {
@@ -178,10 +295,79 @@
           "snapshot": {
             "type": "object",
             "nullable": true,
+            "description": "En son workspace snapshot'ı. İlk sync'te veya büyük versiyon farkında kullanışlı.",
             "properties": {
               "version": { "type": "integer" },
-              "data": { "type": "object" },
+              "data": {
+                "type": "object",
+                "description": "{ tasks: { uuid: {...} }, projects: { uuid: {...} }, ... } formatında tüm entity'ler"
+              },
               "createdAt": { "type": "string", "format": "date-time" }
+            }
+          },
+          "pendingConflicts": {
+            "type": "array",
+            "description": "Bu client'ın çözüm bekleyen conflict diff'leri",
+            "items": {
+              "type": "object",
+              "properties": {
+                "diffId": { "type": "string", "format": "uuid" },
+                "data": { "$ref": "#/components/schemas/DiffData" },
+                "reason": { "type": "string" },
+                "clientTimestamp": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        }
+      },
+      "FullSyncRequest": {
+        "type": "object",
+        "required": ["clientId"],
+        "description": "Tam senkronizasyon isteği. İlk katılımda veya uzun offline sonrası kullanılır.",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "POST /api/join ile alınan client ID"
+          }
+        }
+      },
+      "FullSyncResponse": {
+        "type": "object",
+        "description": "Tam snapshot yanıtı. Client bu veriyi lokale tam olarak yazar.",
+        "properties": {
+          "success": { "type": "boolean" },
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "workspaceName": { "type": "string" },
+          "currentVersion": { "type": "integer" },
+          "syncStrategy": { "$ref": "#/components/schemas/SyncStrategy" },
+          "snapshot": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "integer" },
+              "data": {
+                "type": "object",
+                "description": "Tüm entity'lerin güncel durumunu içeren JSONB. Format: { tasks: { uuid: {title, status, ...} }, projects: { uuid: {...} }, ... }"
+              },
+              "appliedDiffIds": {
+                "type": "array",
+                "items": { "type": "string", "format": "uuid" },
+                "description": "Bu snapshot'ı oluşturan diff ID'leri"
+              },
+              "createdAt": { "type": "string", "format": "date-time" }
+            }
+          },
+          "pendingConflicts": {
+            "type": "array",
+            "description": "Bu client'ın çözüm bekleyen conflict diff'leri",
+            "items": {
+              "type": "object",
+              "properties": {
+                "diffId": { "type": "string", "format": "uuid" },
+                "data": { "$ref": "#/components/schemas/DiffData" },
+                "reason": { "type": "string" },
+                "clientTimestamp": { "type": "string", "format": "date-time" }
+              }
             }
           }
         }
@@ -193,12 +379,138 @@
           "clientId": { "type": "string", "format": "uuid" }
         }
       },
+      "HeartbeatResponse": {
+        "type": "object",
+        "description": "Heartbeat yanıtı. Client bu bilgiyle pull gerekip gerekmediğine karar verir.",
+        "properties": {
+          "success": { "type": "boolean" },
+          "currentVersion": {
+            "type": "integer",
+            "description": "Workspace'in güncel versiyonu"
+          },
+          "lastSyncedVersion": {
+            "type": "integer",
+            "description": "Client'ın en son senkronize ettiği versiyon"
+          },
+          "hasPendingUpdates": {
+            "type": "boolean",
+            "description": "true ise client geride kalmış, pull yapmalı"
+          },
+          "pendingConflicts": {
+            "type": "integer",
+            "description": "Client'ın çözüm bekleyen conflict sayısı"
+          },
+          "syncStrategy": { "$ref": "#/components/schemas/SyncStrategy" }
+        }
+      },
       "ResolveRequest": {
         "type": "object",
         "required": ["diffId", "resolution"],
+        "description": "Tekil conflict çözümleme. accept: diff uygulanır, reject: diff atılır.",
         "properties": {
           "diffId": { "type": "string", "format": "uuid" },
-          "resolution": { "type": "string", "enum": ["accept", "reject"] }
+          "resolution": {
+            "type": "string",
+            "enum": ["accept", "reject"],
+            "description": "accept: client diff'i uygulanır ve yeni versiyon oluşturulur. reject: diff atılır, sunucu versiyonu korunur."
+          }
+        }
+      },
+      "ResolveBatchRequest": {
+        "type": "object",
+        "required": ["resolutions"],
+        "description": "Toplu conflict çözümleme. Birden fazla conflict tek seferde çözülebilir.",
+        "properties": {
+          "resolutions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["diffId", "resolution"],
+              "properties": {
+                "diffId": { "type": "string", "format": "uuid" },
+                "resolution": {
+                  "type": "string",
+                  "enum": ["accept", "reject"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "UpdateStrategyRequest": {
+        "type": "object",
+        "required": ["workspaceId", "strategy"],
+        "description": "Workspace'in sync stratejisini günceller. Mevcut conflict'leri etkilemez, sadece yeni push'larda geçerli olur.",
+        "properties": {
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "strategy": { "$ref": "#/components/schemas/SyncStrategy" }
+        }
+      },
+      "ConflictDetail": {
+        "type": "object",
+        "description": "Bir conflict'in tam detayı. Hem client'ın gönderdiği diff'i hem sunucudaki mevcut durumu içerir.",
+        "properties": {
+          "diffId": { "type": "string", "format": "uuid" },
+          "clientId": { "type": "string", "format": "uuid" },
+          "clientName": { "type": "string" },
+          "baseVersion": {
+            "type": "integer",
+            "description": "Client'ın bu diff'i oluşturduğu andaki versiyon"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DiffData",
+            "description": "Client'ın gönderdiği değişiklik"
+          },
+          "clientTimestamp": { "type": "string", "format": "date-time" },
+          "serverTimestamp": { "type": "string", "format": "date-time" },
+          "conflictReason": { "type": "string" },
+          "serverCurrentValue": {
+            "description": "Snapshot'taki entity'nin güncel hali (null ise entity silinmiş veya yok)",
+            "nullable": true
+          },
+          "lastServerDiff": {
+            "type": "object",
+            "nullable": true,
+            "description": "Çakışmaya neden olan sunucudaki son diff",
+            "properties": {
+              "diffId": { "type": "string", "format": "uuid" },
+              "data": { "$ref": "#/components/schemas/DiffData" },
+              "appliedVersion": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "SyncStatusResponse": {
+        "type": "object",
+        "description": "Workspace'in anlık senkronizasyon durumu.",
+        "properties": {
+          "success": { "type": "boolean" },
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "currentVersion": { "type": "integer" },
+          "syncStrategy": { "$ref": "#/components/schemas/SyncStrategy" },
+          "totalDiffs": { "type": "integer" },
+          "appliedDiffs": { "type": "integer" },
+          "pendingDiffs": { "type": "integer" },
+          "conflictDiffs": { "type": "integer" },
+          "rejectedDiffs": { "type": "integer" },
+          "clients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clientId": { "type": "string", "format": "uuid" },
+                "name": { "type": "string" },
+                "hostname": { "type": "string" },
+                "isOnline": { "type": "boolean" },
+                "lastSyncedVersion": { "type": "integer" },
+                "lastSeenAt": { "type": "string", "format": "date-time" },
+                "behindVersions": {
+                  "type": "integer",
+                  "description": "Client'ın kaç versiyon geride olduğu"
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -349,7 +661,7 @@
       "post": {
         "tags": ["Join"],
         "summary": "Lokal client join key ile workspace'e katılır",
-        "description": "Auth gerektirmez. Lokal uygulama bu endpoint ile remote server'a bağlanır.",
+        "description": "Auth gerektirmez. Lokal uygulama bu endpoint ile remote server'a bağlanır. Katılım sonrası client `POST /api/sync/full` ile tam snapshot almalı veya `GET /api/sync/pull?sinceVersion=0` ile başlangıç verilerini çekmelidir.",
         "requestBody": {
           "required": true,
           "content": {
@@ -372,7 +684,8 @@
                         "id": { "type": "string" },
                         "name": { "type": "string" },
                         "status": { "type": "string" },
-                        "currentVersion": { "type": "integer" }
+                        "currentVersion": { "type": "integer" },
+                        "syncStrategy": { "type": "string" }
                       }
                     },
                     "client": { "$ref": "#/components/schemas/ConnectedClient" }
@@ -403,39 +716,119 @@
     },
     "/api/sync/push": {
       "post": {
-        "tags": ["Sync"],
+        "tags": ["Sync — Client"],
         "summary": "Diff'leri sunucuya gönder",
-        "description": "Lokal client (SQLite) değişikliklerini diff olarak gönderir. Offline iken biriken diff'ler toplu gönderilebilir. Sunucu conflict detection yapar ve reconcile eder.",
+        "description": "Lokal client değişikliklerini diff olarak gönderir. Offline biriken diff'ler toplu gönderilebilir.\n\n### İşleyiş\n1. Her diff'in `baseVersion` değeri workspace'in `currentVersion`'ı ile karşılaştırılır\n2. `baseVersion < currentVersion` → versiyon farkı var, çakışma kontrolü başlar\n3. Bu aralıkta aynı `entity+entityId+field`'a dokunan applied diff aranır\n4. Çakışma bulunursa workspace'in `syncStrategy`'sine göre çözümlenir:\n   - **auto-merge**: Farklı field → otomatik birleştir. Aynı field → LWW (timestamp)\n   - **last-writer-wins**: Son client_timestamp kazanır\n   - **server-wins**: Sunucu versiyonu korunur, client diff reject\n   - **manual**: Conflict olarak işaretlenir, dashboard'dan çözülür\n5. Kabul edilen diff'ler reconcile edilir → yeni snapshot + versiyon\n\n### Offline Senaryosu\nClient çevrimdışı iken biriktirdiği tüm diff'leri tek seferde gönderir. Tüm diff'lerin `baseVersion`'ı offline başlangıcındaki versiyon olur. Sunucu her diff'i sırayla işler ve çakışmaları stratejiye göre çözer.",
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/PushRequest" } }
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PushRequest" },
+              "examples": {
+                "onlineUpdate": {
+                  "summary": "Online tekil güncelleme",
+                  "value": {
+                    "clientId": "550e8400-e29b-41d4-a716-446655440000",
+                    "diffs": [
+                      {
+                        "baseVersion": 5,
+                        "data": {
+                          "entity": "task",
+                          "entityId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                          "action": "update",
+                          "field": "title",
+                          "oldValue": "Eski başlık",
+                          "newValue": "Yeni başlık"
+                        },
+                        "clientTimestamp": "2026-02-19T10:30:00Z"
+                      }
+                    ]
+                  }
+                },
+                "offlineBatch": {
+                  "summary": "Offline biriken diff'ler (toplu gönderim)",
+                  "value": {
+                    "clientId": "550e8400-e29b-41d4-a716-446655440000",
+                    "diffs": [
+                      {
+                        "baseVersion": 3,
+                        "data": {
+                          "entity": "task",
+                          "entityId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                          "action": "create",
+                          "field": null,
+                          "oldValue": null,
+                          "newValue": { "title": "Yeni görev", "status": "todo", "priority": "high" }
+                        },
+                        "clientTimestamp": "2026-02-19T08:00:00Z"
+                      },
+                      {
+                        "baseVersion": 3,
+                        "data": {
+                          "entity": "task",
+                          "entityId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                          "action": "update",
+                          "field": "status",
+                          "oldValue": "todo",
+                          "newValue": "in-progress"
+                        },
+                        "clientTimestamp": "2026-02-19T09:15:00Z"
+                      },
+                      {
+                        "baseVersion": 3,
+                        "data": {
+                          "entity": "project",
+                          "entityId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                          "action": "update",
+                          "field": "name",
+                          "oldValue": "Proje A",
+                          "newValue": "Proje A (güncellendi)"
+                        },
+                        "clientTimestamp": "2026-02-19T09:30:00Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
           }
         },
         "responses": {
           "200": {
-            "description": "Push sonucu",
+            "description": "Push sonucu — kabul/red/conflict detayları",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/PushResponse" } }
             }
           },
-          "400": { "description": "Geçersiz istek" },
+          "400": { "description": "Geçersiz istek (clientId eksik veya diff formatı hatalı)" },
           "404": { "description": "Client bulunamadı" }
         }
       }
     },
     "/api/sync/pull": {
       "get": {
-        "tags": ["Sync"],
+        "tags": ["Sync — Client"],
         "summary": "Son değişiklikleri çek",
-        "description": "Client son bildiği versiyondan bu yana olan diff'leri ve son snapshot'ı çeker. Nihai versiyonu lokale uygular.",
+        "description": "Client son bildiği versiyondan bu yana diğer client'ların uyguladığı diff'leri ve en son snapshot'ı çeker.\n\n### Davranış\n- `sinceVersion` belirtilmezse client'ın `last_synced_version` değeri kullanılır\n- Client kendi gönderdiği diff'leri görmez (zaten lokalde var)\n- Yanıt hem incremental diff'leri hem de tam snapshot'ı içerir\n- Client, diff'leri sırayla lokale uygulamalı veya snapshot'ı doğrudan yazmalı\n- `pendingConflicts` dizisi bu client'ın çözüm bekleyen çakışmalarını gösterir\n\n### Ne Zaman Kullanılır\n- Heartbeat sonrası `hasPendingUpdates=true` geldiğinde\n- Push sonrası sunucudaki son durumu almak için\n- Periyodik polling (ör. 30 saniyede bir)",
         "parameters": [
-          { "name": "clientId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } },
-          { "name": "sinceVersion", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "Bu versiyondan sonraki değişiklikler (varsayılan: client'ın last_synced_version'ı)" }
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "POST /api/join ile alınan client ID"
+          },
+          {
+            "name": "sinceVersion",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "Bu versiyondan sonraki değişiklikler (varsayılan: client'ın last_synced_version'ı). 0 göndermek tüm geçmişi çeker."
+          }
         ],
         "responses": {
           "200": {
-            "description": "Güncel değişiklikler ve snapshot",
+            "description": "Güncel değişiklikler, snapshot ve pending conflict'ler",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/PullResponse" } }
             }
@@ -444,11 +837,33 @@
         }
       }
     },
+    "/api/sync/full": {
+      "post": {
+        "tags": ["Sync — Client"],
+        "summary": "Tam snapshot ile senkronizasyon",
+        "description": "Workspace'in tam güncel snapshot'ını döndürür. İlk katılımda veya uzun offline döneminden sonra kullanılır.\n\n### Ne Zaman Kullanılır\n- `POST /api/join` sonrası ilk veriyi almak için\n- Client'ın lokal veritabanı sıfırlandığında\n- Versiyon farkı çok büyükse (incremental diff yerine tam snapshot daha verimli)\n- Veri bütünlüğü şüphesi olduğunda\n\n### Fark: pull vs full\n- **pull**: Incremental diff'ler (sadece değişenler). Verimli ama versiyon farkı az olmalı.\n- **full**: Tam snapshot (tüm entity'ler). İlk sync veya recovery için.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/FullSyncRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tam snapshot ve workspace bilgileri",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/FullSyncResponse" } }
+            }
+          },
+          "404": { "description": "Client bulunamadı" }
+        }
+      }
+    },
     "/api/sync/heartbeat": {
       "post": {
-        "tags": ["Sync"],
-        "summary": "Online durumu bildir",
-        "description": "Client periyodik olarak heartbeat gönderir. Sunucu pending update olup olmadığını bildirir.",
+        "tags": ["Sync — Client"],
+        "summary": "Online durumu bildir & pending update kontrol",
+        "description": "Client periyodik olarak (ör. 30-60 saniye) heartbeat gönderir.\n\n### İşleyiş\n1. Client'ın `is_online` ve `last_seen_at` bilgileri güncellenir\n2. `hasPendingUpdates=true` dönerse client pull yapmalı\n3. `pendingConflicts > 0` dönerse client'ın çözüm bekleyen çakışmaları var\n\n### Offline Detection\nSunucu, belirli bir süre heartbeat almayan client'ları offline kabul edebilir.",
         "requestBody": {
           "required": true,
           "content": {
@@ -457,29 +872,76 @@
         },
         "responses": {
           "200": {
-            "description": "Heartbeat yanıtı — hasPendingUpdates ile client'a pull yapması gerektiği söylenir"
-          }
+            "description": "Heartbeat yanıtı",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/HeartbeatResponse" } }
+            }
+          },
+          "404": { "description": "Client bulunamadı" }
         }
       }
     },
     "/api/sync/status": {
       "get": {
-        "tags": ["Sync"],
-        "summary": "Workspace sync durumu (Dashboard)",
+        "tags": ["Sync — Dashboard"],
+        "summary": "Workspace sync durumu",
+        "description": "Workspace'in anlık senkronizasyon durumunu gösterir: versiyon, diff sayıları, client durumları.",
         "security": [{ "BearerAuth": [] }],
         "parameters": [
           { "name": "workspaceId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
-          "200": { "description": "Sync durumu — pending diff sayıları, client durumları" },
-          "401": { "description": "Yetkisiz" }
+          "200": {
+            "description": "Sync durumu",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/SyncStatusResponse" } }
+            }
+          },
+          "401": { "description": "Yetkisiz" },
+          "404": { "description": "Workspace bulunamadı" }
+        }
+      }
+    },
+    "/api/sync/conflicts": {
+      "get": {
+        "tags": ["Sync — Dashboard"],
+        "summary": "Conflict listesi (detaylı)",
+        "description": "Workspace'teki tüm çözüm bekleyen conflict'leri listeler. Her conflict için:\n- Client'ın gönderdiği diff (ne yapmak istedi)\n- Sunucudaki mevcut entity durumu (snapshot'tan)\n- Çakışmaya neden olan son server diff'i\n\nBu bilgilerle admin, conflict'i bilinçli şekilde çözebilir.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "workspaceId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conflict listesi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "workspaceId": { "type": "string", "format": "uuid" },
+                    "currentVersion": { "type": "integer" },
+                    "totalConflicts": { "type": "integer" },
+                    "conflicts": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ConflictDetail" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Yetkisiz" },
+          "404": { "description": "Workspace bulunamadı" }
         }
       }
     },
     "/api/sync/resolve": {
       "post": {
-        "tags": ["Sync"],
-        "summary": "Conflict olan diff'i çöz (Dashboard)",
+        "tags": ["Sync — Dashboard"],
+        "summary": "Tekil conflict çöz",
+        "description": "Tek bir conflict diff'ini çözer.\n\n- **accept**: Diff uygulanır → yeni snapshot ve versiyon oluşturulur\n- **reject**: Diff atılır → sunucudaki mevcut versiyon korunur",
         "security": [{ "BearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -489,7 +951,101 @@
         },
         "responses": {
           "200": { "description": "Conflict çözüldü" },
-          "400": { "description": "Geçersiz istek" }
+          "400": { "description": "Geçersiz istek veya diff conflict durumunda değil" },
+          "404": { "description": "Diff bulunamadı" }
+        }
+      }
+    },
+    "/api/sync/resolve-batch": {
+      "post": {
+        "tags": ["Sync — Dashboard"],
+        "summary": "Toplu conflict çöz",
+        "description": "Birden fazla conflict'i tek seferde çözer. Her biri bağımsız olarak accept veya reject edilebilir. Kabul edilen diff'ler workspace bazında reconcile edilir.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResolveBatchRequest" },
+              "examples": {
+                "mixed": {
+                  "summary": "Karışık çözümleme",
+                  "value": {
+                    "resolutions": [
+                      { "diffId": "abc-123", "resolution": "accept" },
+                      { "diffId": "def-456", "resolution": "reject" },
+                      { "diffId": "ghi-789", "resolution": "accept" }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Toplu çözümleme sonucu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "total": { "type": "integer" },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "diffId": { "type": "string" },
+                          "success": { "type": "boolean" },
+                          "resolution": { "type": "string" },
+                          "reason": { "type": "string", "description": "Hata durumunda açıklama" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Geçersiz istek" },
+          "401": { "description": "Yetkisiz" }
+        }
+      }
+    },
+    "/api/sync/strategy": {
+      "patch": {
+        "tags": ["Sync — Dashboard"],
+        "summary": "Sync stratejisini güncelle",
+        "description": "Workspace'in conflict çözümleme stratejisini değiştirir. Değişiklik sadece yeni push'larda geçerli olur, mevcut conflict'ler etkilenmez.\n\n### Stratejiler\n- **auto-merge** (varsayılan): Farklı field'lar otomatik birleşir. Aynı field çakışmasında en son timestamp kazanır (LWW).\n- **last-writer-wins**: Her zaman en son client_timestamp kazanır. Basit ama veri kaybı riski.\n- **server-wins**: Sunucudaki versiyon korunur, client diff reject edilir. En güvenli.\n- **manual**: Tüm çakışmalar dashboard'a yönlendirilir. En yavaş ama en kontrollü.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateStrategyRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Strateji güncellendi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "workspaceId": { "type": "string" },
+                    "strategy": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Geçersiz strateji" },
+          "401": { "description": "Yetkisiz" },
+          "404": { "description": "Workspace bulunamadı" }
         }
       }
     }

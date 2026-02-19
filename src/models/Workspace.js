@@ -55,6 +55,20 @@ const Workspace = sequelize.define("Workspace", {
     allowNull: false,
     defaultValue: 0,
   },
+  /**
+   * Senkronizasyon conflict stratejisi
+   *
+   * - "auto-merge"       : Aynı entity'nin farklı field'ları otomatik birleştirilir,
+   *                         aynı field çakışırsa son timestamp kazanır (LWW)
+   * - "last-writer-wins" : Her zaman en son client_timestamp'a sahip diff kazanır
+   * - "server-wins"      : Sunucuda zaten applied olan versiyon korunur, client diff reject edilir
+   * - "manual"           : Tüm çakışmalar conflict olarak işaretlenir, dashboard'dan çözülür
+   */
+  sync_strategy: {
+    type: DataTypes.ENUM("auto-merge", "last-writer-wins", "server-wins", "manual"),
+    allowNull: false,
+    defaultValue: "auto-merge",
+  },
 }, {
   tableName: "workspaces",
   indexes: [
