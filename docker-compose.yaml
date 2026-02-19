@@ -22,8 +22,6 @@ services:
   app:
     build: .
     restart: unless-stopped
-    # No container_name — allows `docker compose up --scale app=N`
-    # No ports exposed — only reachable via internal network
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -58,10 +56,8 @@ volumes:
   pgdata:
 
 networks:
-  # External network — only nginx is exposed to host
   external:
     driver: bridge
-  # Internal network — app ↔ postgres ↔ nginx (no host access)
   internal:
     driver: bridge
     internal: true
