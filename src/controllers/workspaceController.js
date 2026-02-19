@@ -42,6 +42,30 @@ function formatWorkspace(ws, clients) {
   };
 }
 
+// ===== Helper: Workspace durumunu bağlı client'lara göre güncelle =====
+async function refreshWorkspaceStatus(workspaceId) {
+  const ws = await Workspace.findByPk(workspaceId);
+  if (!ws) return;
+  const onlineCount = await WorkspaceClient.count({
+    where: { workspace_id: workspaceId, is_online: true },
+  });
+  const totalCount = await WorkspaceClient.count({
+    where: { workspace_id: workspaceId },
+  });
+  let newStatus;
+  if (onlineCount > 0) {
+    newStatus = "online";
+  } else if (totalCount > 0) {
+    newStatus = "offline";
+  } else {
+    newStatus = "pending";
+  }
+  if (ws.status !== newStatus) {
+    ws.status = newStatus;
+    await ws.save();
+  }
+}
+
 // GET /api/workspaces — Tüm workspace'leri listele
 async function list(req, res) {
   try {
@@ -53,7 +77,7 @@ async function list(req, res) {
     sendSuccess(res, { workspaces: formatted });
   } catch (err) {
     log.error("Workspace listesi hatası", { err });
-    sendError(res, 500, "Workspace listesi alınamadı: " + err.message);
+    sendError(res, 500, "Workspace listesi alınamadı");
   }
 }
 
@@ -70,7 +94,7 @@ async function getById(req, res, id) {
     sendSuccess(res, { workspace: formatWorkspace(ws, ws.clients) });
   } catch (err) {
     log.error("Workspace detay hatası", { id, err });
-    sendError(res, 500, "Detay alınamadı: " + err.message);
+    sendError(res, 500, "Detay alınamadı");
   }
 }
 
@@ -86,7 +110,11 @@ async function create(req, res) {
     }
 
     const trimmedName = name.trim();
-    const abbr = trimmedName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+    let abbr = trimmedName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+    // Kısaltma 2 karakterden kısaysa, ismin ilk 2 karakterini kullan
+    if (abbr.length < 2) {
+      abbr = trimmedName.toUpperCase().slice(0, 2).padEnd(2, "X");
+    }
     const colors = ["indigo", "amber", "rose", "green", "blue"];
     const wsCount = await Workspace.count();
 
@@ -108,7 +136,7 @@ async function create(req, res) {
     sendSuccess(res, { workspace: formatWorkspace(ws, []) }, 201);
   } catch (err) {
     log.error("Workspace oluşturma hatası", { err });
-    sendError(res, 400, "Oluşturma hatası: " + err.message);
+    sendError(res, 400, "Oluşturma sırasında bir hata oluştu");
   }
 }
 
@@ -130,7 +158,7 @@ async function remove(req, res, id) {
     sendSuccess(res, { message: "Çalışma alanı silindi" });
   } catch (err) {
     log.error("Workspace silme hatası", { id, err });
-    sendError(res, 500, "Silme hatası: " + err.message);
+    sendError(res, 500, "Silme sırasında bir hata oluştu");
   }
 }
 
@@ -152,7 +180,7 @@ async function regenerateKey(req, res, id) {
     sendSuccess(res, { workspace: formatWorkspace(ws, clients) });
   } catch (err) {
     log.error("Key yenileme hatası", { id, err });
-    sendError(res, 500, "Key yenileme hatası: " + err.message);
+    sendError(res, 500, "Key yenileme sırasında bir hata oluştu");
   }
 }
 
@@ -177,9 +205,9 @@ async function join(req, res) {
       return;
     }
 
-    // Upsert: aynı hostname tekrar katılırsa güncelle
+    // Upsert: aynı hostname + client_name tekrar katılırsa güncelle
     const [client, created] = await WorkspaceClient.findOrCreate({
-      where: { workspace_id: ws.id, hostname: hostname || "unknown" },
+      where: { workspace_id: ws.id, hostname: hostname || "unknown", client_name: clientName || "Anonim" },
       defaults: {
         workspace_id: ws.id,
         client_name: clientName || "Anonim",
@@ -195,6 +223,9 @@ async function join(req, res) {
       client.last_seen_at = new Date();
       await client.save();
     }
+
+    // Workspace durumunu güncelle (pending/offline → online)
+    await refreshWorkspaceStatus(ws.id);
 
     await logActivity("client_joined", `İstemci "${ws.name}" alanına katıldı`, `${clientName || "Anonim"} (${hostname || "unknown"}) bağlandı.`, clientName || "Anonim", { workspaceId: ws.id, hostname });
 
@@ -215,7 +246,7 @@ async function join(req, res) {
     });
   } catch (err) {
     log.error("Workspace katılım hatası", { err });
-    sendError(res, 400, "Katılım hatası: " + err.message);
+    sendError(res, 400, "Katılım sırasında bir hata oluştu");
   }
 }
 
@@ -242,7 +273,7 @@ async function validateKey(req, res) {
     });
   } catch (err) {
     log.error("Key doğrulama hatası", { err });
-    sendError(res, 400, "Doğrulama hatası: " + err.message);
+    sendError(res, 400, "Doğrulama sırasında bir hata oluştu");
   }
 }
 
@@ -284,7 +315,7 @@ async function stats(req, res) {
     });
   } catch (err) {
     log.error("İstatistik hatası", { err });
-    sendError(res, 500, "İstatistik alınamadı: " + err.message);
+    sendError(res, 500, "İstatistik alınamadı");
   }
 }
 
@@ -299,7 +330,7 @@ async function listUsers(req, res) {
     sendSuccess(res, { users: users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at || u.createdAt })) });
   } catch (err) {
     log.error("Kullanıcı listesi hatası", { err });
-    sendError(res, 500, "Kullanıcı listesi alınamadı: " + err.message);
+    sendError(res, 500, "Kullanıcı listesi alınamadı");
   }
 }
 
@@ -335,7 +366,7 @@ async function createUser(req, res) {
     log.error("Kullanıcı oluşturma hatası", { err });
     const message = err.name === "SequelizeUniqueConstraintError"
       ? "Bu e-posta adresi zaten kullanılıyor"
-      : "Kullanıcı oluşturma hatası: " + err.message;
+      : "Kullanıcı oluşturulurken bir hata oluştu";
     sendError(res, 400, message);
   }
 }
@@ -356,6 +387,12 @@ async function deleteUser(req, res, id) {
       return;
     }
 
+    // Sadece Yönetici rolü silme yapabilir
+    if (!req.user || req.user.role !== "Yönetici") {
+      sendError(res, 403, "Bu işlem için yönetici yetkisi gereklidir");
+      return;
+    }
+
     const userName = user.name;
     await user.destroy();
 
@@ -366,7 +403,7 @@ async function deleteUser(req, res, id) {
     sendSuccess(res, { message: "Kullanıcı silindi" });
   } catch (err) {
     log.error("Kullanıcı silme hatası", { id, err });
-    sendError(res, 500, "Silme hatası: " + err.message);
+    sendError(res, 500, "Kullanıcı silinirken bir hata oluştu");
   }
 }
 
@@ -400,7 +437,7 @@ async function listActivities(req, res) {
     });
   } catch (err) {
     log.error("Aktivite listesi hatası", { err });
-    sendError(res, 500, "Aktivite listesi alınamadı: " + err.message);
+    sendError(res, 500, "Aktivite listesi alınamadı");
   }
 }
 
@@ -417,4 +454,5 @@ module.exports = {
   createUser,
   deleteUser,
   listActivities,
+  refreshWorkspaceStatus,
 };

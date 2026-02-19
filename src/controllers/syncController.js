@@ -140,6 +140,23 @@ async function push(req, res) {
         continue;
       }
 
+      // Diff data yapısını doğrula
+      const d = diff.data;
+      const validEntities = ["task", "project", "column", "label", "comment"];
+      const validActions = ["create", "update", "delete"];
+      if (!d.entity || !validEntities.includes(d.entity)) {
+        conflicts.push({ diff, reason: `Geçersiz entity: ${d.entity}. Beklenen: ${validEntities.join(", ")}` });
+        continue;
+      }
+      if (!d.entityId || typeof d.entityId !== "string") {
+        conflicts.push({ diff, reason: "Eksik veya geçersiz entityId" });
+        continue;
+      }
+      if (!d.action || !validActions.includes(d.action)) {
+        conflicts.push({ diff, reason: `Geçersiz action: ${d.action}. Beklenen: ${validActions.join(", ")}` });
+        continue;
+      }
+
       // Conflict detection: diff'in base_version'ı workspace'in mevcut versiyonundan eski mi?
       const baseVersion = diff.baseVersion || 0;
       const hasVersionGap = baseVersion < workspace.current_version;
@@ -246,7 +263,7 @@ async function push(req, res) {
   } catch (err) {
     await t.rollback();
     log.error("Push hatası", { err });
-    sendError(res, 500, "Push hatası: " + err.message);
+    sendError(res, 500, "Push işlemi sırasında bir hata oluştu");
   }
 }
 
@@ -350,7 +367,7 @@ async function pull(req, res) {
     });
   } catch (err) {
     log.error("Pull hatası", { err });
-    sendError(res, 500, "Pull hatası: " + err.message);
+    sendError(res, 500, "Pull işlemi sırasında bir hata oluştu");
   }
 }
 
@@ -422,7 +439,7 @@ async function fullSync(req, res) {
     });
   } catch (err) {
     log.error("Full sync hatası", { err });
-    sendError(res, 500, "Full sync hatası: " + err.message);
+    sendError(res, 500, "Full sync işlemi sırasında bir hata oluştu");
   }
 }
 
@@ -450,6 +467,12 @@ async function heartbeat(req, res) {
 
     const workspace = await Workspace.findByPk(client.workspace_id);
 
+    // Workspace durumunu güncelle (client online → workspace online)
+    if (workspace && workspace.status !== "online") {
+      workspace.status = "online";
+      await workspace.save();
+    }
+
     // Bekleyen conflict sayısı
     const conflictCount = await DiffEntry.count({
       where: {
@@ -470,7 +493,7 @@ async function heartbeat(req, res) {
     });
   } catch (err) {
     log.error("Heartbeat hatası", { err });
-    sendError(res, 500, "Heartbeat hatası: " + err.message);
+    sendError(res, 500, "Heartbeat işlemi sırasında bir hata oluştu");
   }
 }
 
@@ -533,7 +556,7 @@ async function status(req, res) {
     });
   } catch (err) {
     log.error("Durum sorgulama hatası", { err });
-    sendError(res, 500, "Durum sorgulama hatası: " + err.message);
+    sendError(res, 500, "Durum sorgulama sırasında bir hata oluştu");
   }
 }
 
@@ -619,7 +642,7 @@ async function conflicts(req, res) {
     });
   } catch (err) {
     log.error("Conflict listesi hatası", { err });
-    sendError(res, 500, "Conflict listesi hatası: " + err.message);
+    sendError(res, 500, "Conflict listesi alınırken bir hata oluştu");
   }
 }
 // Conflict olan diff'leri manuel çöz
@@ -673,7 +696,7 @@ async function resolve(req, res) {
     }
   } catch (err) {
     log.error("Çözümleme hatası", { err });
-    sendError(res, 500, "Çözümleme hatası: " + err.message);
+    sendError(res, 500, "Çözümleme sırasında bir hata oluştu");
   }
 }
 // Birden fazla conflict'i toplu çöz
@@ -742,7 +765,7 @@ async function resolveBatch(req, res) {
   } catch (err) {
     await t.rollback();
     log.error("Toplu çözümleme hatası", { err });
-    sendError(res, 500, "Toplu çözümleme hatası: " + err.message);
+    sendError(res, 500, "Toplu çözümleme sırasında bir hata oluştu");
   }
 }
 // Workspace'in sync stratejisini güncelle (dashboard için)
@@ -778,7 +801,7 @@ async function updateStrategy(req, res) {
     });
   } catch (err) {
     log.error("Strateji güncelleme hatası", { err });
-    sendError(res, 500, "Strateji güncelleme hatası: " + err.message);
+    sendError(res, 500, "Strateji güncelleme sırasında bir hata oluştu");
   }
 }
 // ================= INTERNAL HELPER FUNCTIONS ========================
@@ -914,7 +937,8 @@ async function _reconcile(workspace, diffs, transaction) {
   });
 
   if (lastSnapshot) {
-    snapshotData = JSON.parse(JSON.stringify(lastSnapshot.data));
+    // structuredClone kullanarak verimli derin kopyalama
+    snapshotData = structuredClone(lastSnapshot.data);
   }
 
   // Her diff'i snapshot'a uygula

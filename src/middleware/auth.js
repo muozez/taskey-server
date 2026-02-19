@@ -2,6 +2,7 @@ const { sendError } = require("../utils/response");
 
 // ===== Session store referansı server.js'den alınacak =====
 let _sessions = null;
+const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 saat
 
 function init(sessionsMap) {
   _sessions = sessionsMap;
@@ -20,6 +21,12 @@ function requireAuth(req, res) {
   const session = _sessions.get(token);
   if (!session) {
     sendError(res, 401, "Geçersiz veya süresi dolmuş oturum");
+    return false;
+  }
+  // Süresi dolmuş oturumları kontrol et
+  if (Date.now() - session.createdAt > SESSION_TTL) {
+    _sessions.delete(token);
+    sendError(res, 401, "Oturum süresi dolmuş, lütfen tekrar giriş yapın");
     return false;
   }
   req.user = session;

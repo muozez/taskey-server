@@ -50,7 +50,7 @@ const WorkspaceClient = sequelize.define("WorkspaceClient", {
   tableName: "workspace_clients",
   indexes: [
     { fields: ["workspace_id"] },
-    { unique: true, fields: ["workspace_id", "hostname"] },
+    { unique: true, fields: ["workspace_id", "hostname", "client_name"] },
   ],
 });
 

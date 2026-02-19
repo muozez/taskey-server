@@ -12,10 +12,13 @@ Taskey, proje yönetiminde tekrarlayan işleri hızlandırmayı komutlar sayesin
 ```bash
 git clone https://github.com/muozez/taskey-server.git
 cd taskey-server
+cp .env.example .env   # ortam değişkenlerini düzenleyin
 docker compose up -d
 ```
 
 Uygulama `http://localhost:80` adresinde ayağa kalkar. İlk açılışta `/setup.html` üzerinden yönetici hesabınızı oluşturun.
+
+> **TLS kullanmak için:** `.env` dosyasında `NGINX_CONF=nginx-ssl.conf` olarak değiştirin ve `./certs/` klasörüne `server.crt` ile `server.key` dosyalarını koyun.
 
 ---
 
@@ -120,9 +123,15 @@ Taskey'de CRDT yerine **diff tabanlı versiyon reconcile** tercih edildi. Bunun 
 
 # Kurulum
 
-1. `docker-compose.yaml` içerisinden değişkenleri ayarlayınız.
+1. `.env.example` dosyasını `.env` olarak kopyalayın ve ortam değişkenlerini düzenleyin:
+   ```bash
+   cp .env.example .env
+   ```
 
-2. ```docker compose up -d```
+2. Container'ları başlatın:
+   ```bash
+   docker compose up -d
+   ```
 
 3. `http://<ip-address>:80` adresinden erişebilirsiniz.
 
@@ -130,7 +139,22 @@ Taskey'de CRDT yerine **diff tabanlı versiyon reconcile** tercih edildi. Bunun 
 
 # Ortam Değişkenleri
 
-Ortam değişkenleri kullanılmamaktadır. Direkt olarak `docker-compose.yaml` içerisinden database için kullanıcı adı ve şifre belirleyebilirsiniz.
+Tüm yapılandırma `.env` dosyası üzerinden yönetilir. Başlamadan önce `.env.example` dosyasını `.env` olarak kopyalayıp değerlerinizi güncelleyin.
+
+| Değişken | Varsayılan | Açıklama |
+|----------|------------|----------|
+| `POSTGRES_DB` | `taskey` | PostgreSQL veritabanı adı |
+| `POSTGRES_USER` | `taskey` | PostgreSQL kullanıcı adı |
+| `POSTGRES_PASSWORD` | — | PostgreSQL şifresi (**değiştirin**) |
+| `NODE_ENV` | `production` | Uygulama ortamı |
+| `PORT` | `3000` | Node.js uygulama portu (container içi) |
+| `LOG_LEVEL` | `info` | Log seviyesi |
+| `DB_HOST` | `postgres` | Veritabanı host adresi (Docker service adı) |
+| `DB_PORT` | `5432` | Veritabanı portu |
+| `DB_NAME` | `taskey` | Uygulama DB adı (`POSTGRES_DB` ile aynı olmalı) |
+| `DB_USER` | `taskey` | Uygulama DB kullanıcısı (`POSTGRES_USER` ile aynı olmalı) |
+| `DB_PASS` | — | Uygulama DB şifresi (`POSTGRES_PASSWORD` ile aynı olmalı) |
+| `NGINX_CONF` | `nginx.conf` | Nginx yapılandırma dosyası (`nginx-ssl.conf` ile TLS aktif) |
 
 # Klasör Yapısı
 

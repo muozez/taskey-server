@@ -121,7 +121,7 @@ const schemas = {
     required: ["joinKey"],
     rules: {
       joinKey: (v) =>
-        /^[A-Z2-9]{4}-[A-Z2-9]{4}$/i.test(v) ? true : "Anahtar formatı XXXX-YYYY olmalı",
+        /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/i.test(v) ? true : "Anahtar formatı XXXX-YYYY olmalı",
     },
   },
 

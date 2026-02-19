@@ -44,6 +44,9 @@ async function initDatabase() {
     log.info("PostgreSQL bağlantısı başarılı", { host: config.host, port: config.port, db: config.database });
 
     // Model tanımları yüklendikten sonra sync çağrılır
+    // UYARI: Production'da alter: false kullanılır. Şema değişiklikleri için
+    // Sequelize migrations kullanılmalıdır. Development'ta alter: true sadece
+    // test verileri ile kullanılmalıdır — gerçek verilerle veri kaybına neden olabilir.
     await sequelize.sync({ alter: process.env.NODE_ENV !== "production" });
     log.info("Tablolar senkronize edildi");
 
